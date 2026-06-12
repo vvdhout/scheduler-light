@@ -40,10 +40,16 @@ interface KV {
 }
 
 function redisKv(): KV | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  const url = (process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL)?.trim();
+  const token = (process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN)?.trim();
   if (!url || !token) return null;
-  const redis = new Redis({ url, token });
+  let redis: Redis;
+  try {
+    redis = new Redis({ url, token });
+  } catch (e) {
+    console.error('Redis init failed, falling back to memory store:', e);
+    return null;
+  }
   return {
     getJson: async <T>(key: string) => (await redis.get<T>(key)) ?? null,
     setJson: async (key, value, exSec) => {
@@ -155,6 +161,18 @@ export function methodIs(req: VercelRequest, res: VercelResponse, method: string
     return false;
   }
   return true;
+}
+
+/** Wraps a handler so unexpected errors return a JSON message instead of an opaque 500. */
+export function safe(h: (req: VercelRequest, res: VercelResponse) => Promise<unknown>) {
+  return async (req: VercelRequest, res: VercelResponse) => {
+    try {
+      await h(req, res);
+    } catch (e) {
+      console.error(`${req.method} ${req.url} failed:`, e);
+      res.status(500).json({ error: `Server error: ${e instanceof Error ? e.message : String(e)}` });
+    }
+  };
 }
 
 /** Per-event mutation lock (Upstash REST has no transactions). */

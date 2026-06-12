@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
-  evKey, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, sha256Hex, TTL_SEC, validateCore, withLock,
+  evKey, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, sha256Hex, TTL_SEC, validateCore, withLock,
   type EventRecord,
 } from './_lib';
 import { isId } from './_lib';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'POST')) return;
   if (!(await rateLimit(req, res, 'admin', 120))) return;
 
@@ -60,4 +60,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!result) return res.status(503).json({ error: 'Busy — try again.' });
   if (result.status !== 200) return res.status(result.status).json({ error: result.error });
   return res.status(200).json(result.data);
-}
+});

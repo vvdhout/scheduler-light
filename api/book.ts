@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { isValidSlot, overlaps } from '../src/lib/model';
-import { evKey, isId, isStr, kv, MAX_RECORD_BYTES, methodIs, rateLimit, sha256Hex, TTL_SEC, withLock, type EventRecord } from './_lib';
+import { evKey, isId, isStr, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, sha256Hex, TTL_SEC, withLock, type EventRecord } from './_lib';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'POST')) return;
   if (!(await rateLimit(req, res, 'book', 30))) return;
 
@@ -47,4 +47,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Notification seam: plug Resend / a Discord webhook in here later.
   return res.status(200).json({ ok: true });
-}
+});

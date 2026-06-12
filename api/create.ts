@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
-  evKey, genId, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, validateCore,
+  evKey, genId, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, validateCore,
   type EventRecord,
 } from './_lib';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'POST')) return;
   if (!(await rateLimit(req, res, 'create', 20))) return;
 
@@ -40,4 +40,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = genId();
   await kv.setJson(evKey(id), record, 30 * 24 * 3600);
   return res.status(200).json({ id });
-}
+});

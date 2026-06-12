@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { Win } from '../src/lib/model';
-import { evKey, isId, kv, methodIs, type EventRecord } from './_lib';
+import { evKey, isId, kv, methodIs, safe, type EventRecord } from './_lib';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'GET')) return;
   const id = req.query.id;
   if (!isId(id)) return res.status(400).json({ error: 'Invalid id' });
@@ -27,4 +27,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json(payload);
-}
+});
