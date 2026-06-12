@@ -9,6 +9,8 @@ import { localDayStarts, localTz } from '../lib/time';
 
 const DURATIONS = [30, 60, 120, 180, 240];
 
+const STEPS = 3;
+
 export function Create() {
   const [name, setName] = useState('');
   const [event, setEvent] = useState(DEFAULTS.event);
@@ -21,8 +23,16 @@ export function Create() {
   const [result, setResult] = useState<{ id: string; adminToken: string } | null>(null);
   const [copied, setCopied] = useState<'s' | 'a' | null>(null);
   const [pages, setPages] = useState(myPages());
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState<'fwd' | 'back'>('fwd');
 
   const days = localDayStarts(HORIZON_DAYS);
+
+  const go = (to: number) => {
+    setDir(to > step ? 'fwd' : 'back');
+    setError('');
+    setStep(to);
+  };
 
   const generate = async () => {
     setError('');
@@ -96,69 +106,135 @@ export function Create() {
     );
   }
 
+  const dots = (
+    <div class="step-dots" aria-label={`Step ${step + 1} of ${STEPS}`}>
+      {Array.from({ length: STEPS }, (_, i) => (
+        <span key={i} class={i === step ? 'cur' : i < step ? 'done' : ''} />
+      ))}
+    </div>
+  );
+
   return (
     <main class="page">
-      <h1>Slots</h1>
-      <p class="muted">
-        Paint when you’re free over the next 7 days, share one link, and people book a slot — shown in <em>their</em>{' '}
-        timezone. No accounts. Pages evaporate after 30 days of inactivity.
-      </p>
-
-      <div class="card">
-        <label>
-          Your name
-          <input value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} maxLength={80} placeholder="e.g. your Discord name" />
-        </label>
-        <label>
-          Event name
-          <input value={event} onInput={(e) => setEvent((e.target as HTMLInputElement).value)} maxLength={120} />
-        </label>
-        <label>Slot duration</label>
-        <div class="chips">
-          {DURATIONS.map((d) => (
-            <button key={d} type="button" class={`chip ${duration === d ? 'on' : ''}`} onClick={() => setDuration(d)}>
-              {d < 60 ? `${d}m` : `${d / 60}h`}
+      {step === 0 && (
+        <form
+          key="s0"
+          class={`step ${dir}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) go(1);
+          }}
+        >
+          <div class="row spread">
+            <h1>Slots</h1>
+            {dots}
+          </div>
+          <p class="muted">
+            Paint when you’re free over the next 7 days, share one link, and people book a slot — shown in{' '}
+            <em>their</em> timezone. No accounts. Pages evaporate after 30 days of inactivity.
+          </p>
+          <div class="card">
+            <label>
+              Your name
+              <input value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} maxLength={80} placeholder="e.g. your Discord name" />
+            </label>
+          </div>
+          <div class="step-nav">
+            <span />
+            <button type="submit" class="primary" disabled={!name.trim()}>
+              Next →
             </button>
-          ))}
-        </div>
-        <label>
-          Password <span class="muted">(optional — encrypts the page in your browser)</span>
-          <input type="password" value={password} onInput={(e) => setPassword((e.target as HTMLInputElement).value)} autocomplete="new-password" />
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="row spread">
-          <h3>Availability</h3>
-          <span class="muted small-text">{localTz()}</span>
-        </div>
-        <BusyButtons fromMin={days[0]!} toMin={days[0]! + HORIZON_DAYS * 1440} onBusy={setBusyRanges} />
-        <AvailabilityGrid days={days} cells={cells} onChange={setCells} durationMin={duration} busy={busyRanges} />
-      </div>
-
-      {error && <p class="error">{error}</p>}
-      <button type="button" class="primary big" disabled={working} onClick={generate}>
-        {working ? 'Generating…' : 'Generate link'}
-      </button>
-
-      {pages.length > 0 && (
-        <div class="card">
-          <h3>Your pages on this device</h3>
-          {pages.map((p) => (
-            <div key={p.id} class="row spread">
-              <a href={`/a/${p.id}#${p.adminToken}`}>{p.event}</a>
-              <button
-                type="button"
-                class="ghost small"
-                onClick={() => {
-                  forgetPage(p.id);
-                  setPages(myPages());
-                }}
-              >
-                forget
-              </button>
+          </div>
+          {pages.length > 0 && (
+            <div class="card">
+              <h3>Your pages on this device</h3>
+              {pages.map((p) => (
+                <div key={p.id} class="row spread">
+                  <a href={`/a/${p.id}#${p.adminToken}`}>{p.event}</a>
+                  <button
+                    type="button"
+                    class="ghost small"
+                    onClick={() => {
+                      forgetPage(p.id);
+                      setPages(myPages());
+                    }}
+                  >
+                    forget
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+        </form>
+      )}
+
+      {step === 1 && (
+        <form
+          key="s1"
+          class={`step ${dir}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            go(2);
+          }}
+        >
+          <div class="row spread">
+            <h2>The meeting</h2>
+            {dots}
+          </div>
+          <p class="muted">What are people booking, and how long does it take?</p>
+          <div class="card">
+            <label>
+              Event name
+              <input value={event} onInput={(e) => setEvent((e.target as HTMLInputElement).value)} maxLength={120} />
+            </label>
+            <label>Slot duration</label>
+            <div class="chips">
+              {DURATIONS.map((d) => (
+                <button key={d} type="button" class={`chip ${duration === d ? 'on' : ''}`} onClick={() => setDuration(d)}>
+                  {d < 60 ? `${d}m` : `${d / 60}h`}
+                </button>
+              ))}
+            </div>
+            <label>
+              Password <span class="muted">(optional — encrypts the page in your browser)</span>
+              <input type="password" value={password} onInput={(e) => setPassword((e.target as HTMLInputElement).value)} autocomplete="new-password" />
+            </label>
+          </div>
+          <div class="step-nav">
+            <button type="button" class="ghost" onClick={() => go(0)}>
+              ← Back
+            </button>
+            <button type="submit" class="primary">
+              Next →
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === 2 && (
+        <div key="s2" class={`step ${dir}`}>
+          <div class="row spread">
+            <h2>When are you free?</h2>
+            {dots}
+          </div>
+          <p class="muted">Paint your availability — visitors see it in their own timezone.</p>
+          <div class="card">
+            <div class="row spread">
+              <h3>Availability</h3>
+              <span class="muted small-text">{localTz()}</span>
+            </div>
+            <BusyButtons fromMin={days[0]!} toMin={days[0]! + HORIZON_DAYS * 1440} onBusy={setBusyRanges} />
+            <AvailabilityGrid days={days} cells={cells} onChange={setCells} durationMin={duration} busy={busyRanges} />
+          </div>
+          {error && <p class="error">{error}</p>}
+          <div class="step-nav">
+            <button type="button" class="ghost" onClick={() => go(1)}>
+              ← Back
+            </button>
+            <button type="button" class="primary" disabled={working} onClick={generate}>
+              {working ? 'Generating…' : 'Generate link'}
+            </button>
+          </div>
         </div>
       )}
     </main>

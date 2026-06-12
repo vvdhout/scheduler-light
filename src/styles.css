@@ -166,6 +166,40 @@ code.url {
   user-select: all;
 }
 
+/* ---- create flow steps ---- */
+.step { animation: step-fwd 0.22s ease both; }
+.step.back { animation-name: step-back; }
+@keyframes step-fwd {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes step-back {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step { animation: none; }
+}
+
+.step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+.step-nav .primary { min-width: 45%; }
+
+.step-dots { display: flex; gap: 6px; align-items: center; }
+.step-dots span {
+  width: 10px;
+  height: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.step-dots .done { background: var(--accent-dim); border-color: var(--accent-dim); }
+.step-dots .cur { background: var(--accent); border-color: var(--accent); }
+
 /* ---- chips (days, durations) ---- */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 
