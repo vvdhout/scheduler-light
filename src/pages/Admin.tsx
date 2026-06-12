@@ -209,6 +209,7 @@ export function Admin({ id }: { id: string }) {
           days={days}
           cells={cells}
           onChange={setCells}
+          durationMin={core!.durationMin}
           busy={busyRanges}
           booked={bookings.map((b): Win => [b.start, b.end])}
         />

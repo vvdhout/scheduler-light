@@ -133,7 +133,7 @@ export function Create() {
           <span class="muted small-text">{localTz()}</span>
         </div>
         <BusyButtons fromMin={days[0]!} toMin={days[0]! + HORIZON_DAYS * 1440} onBusy={setBusyRanges} />
-        <AvailabilityGrid days={days} cells={cells} onChange={setCells} busy={busyRanges} />
+        <AvailabilityGrid days={days} cells={cells} onChange={setCells} durationMin={duration} busy={busyRanges} />
       </div>
 
       {error && <p class="error">{error}</p>}
