@@ -74,44 +74,49 @@ export function AvailabilityGrid({ days, cells, onChange, busy = [], booked = []
         })}
       </div>
 
-      <div
-        class="cells"
-        onPointerDown={(e) => {
-          const cell = cellFromPoint(e.clientX, e.clientY);
-          if (cell == null || cell < now) return;
-          e.preventDefault();
-          paint.current = { add: !cells.has(cell), touched: new Set() };
-          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          apply(cell);
-        }}
-        onPointerMove={(e) => {
-          if (!paint.current) return;
-          const cell = cellFromPoint(e.clientX, e.clientY);
-          if (cell != null) apply(cell);
-        }}
-        onPointerUp={() => (paint.current = null)}
-        onPointerCancel={() => (paint.current = null)}
-      >
-        {rows.map((cell) => {
-          const isHour = (cell - dayStart) % 60 === 0;
-          const past = cell < now;
-          const isBusy = busy.some(([s, e]) => overlaps(cell, cell + CELL_MIN, s, e));
-          const isBooked = booked.some(([s, e]) => overlaps(cell, cell + CELL_MIN, s, e));
-          const on = cells.has(cell);
-          return (
-            <div key={cell} class="cell-row">
-              <span class="cell-label">{isHour ? fmtTime(cell) : ''}</span>
-              <div
-                data-cell={cell}
-                class={`cell ${on ? 'on' : ''} ${past ? 'past' : ''} ${isBusy ? 'busy' : ''} ${isBooked ? 'booked' : ''}`}
-                aria-disabled={past}
-              >
-                {isBooked && <span class="cell-tag">booked</span>}
-                {!isBooked && isBusy && <span class="cell-tag">busy</span>}
+      <p class="grid-hint muted small-text">Drag on the grid to paint · scroll with the dotted bar</p>
+
+      <div class="cells-wrap">
+        <div class="scroll-rail" aria-hidden="true" />
+        <div
+          class="cells"
+          onPointerDown={(e) => {
+            const cell = cellFromPoint(e.clientX, e.clientY);
+            if (cell == null || cell < now) return;
+            e.preventDefault();
+            paint.current = { add: !cells.has(cell), touched: new Set() };
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            apply(cell);
+          }}
+          onPointerMove={(e) => {
+            if (!paint.current) return;
+            const cell = cellFromPoint(e.clientX, e.clientY);
+            if (cell != null) apply(cell);
+          }}
+          onPointerUp={() => (paint.current = null)}
+          onPointerCancel={() => (paint.current = null)}
+        >
+          {rows.map((cell) => {
+            const isHour = (cell - dayStart) % 60 === 0;
+            const past = cell < now;
+            const isBusy = busy.some(([s, e]) => overlaps(cell, cell + CELL_MIN, s, e));
+            const isBooked = booked.some(([s, e]) => overlaps(cell, cell + CELL_MIN, s, e));
+            const on = cells.has(cell);
+            return (
+              <div key={cell} class="cell-row">
+                <span class="cell-label">{isHour ? fmtTime(cell) : ''}</span>
+                <div
+                  data-cell={cell}
+                  class={`cell ${isHour ? 'hr' : ''} ${on ? 'on' : ''} ${past ? 'past' : ''} ${isBusy ? 'busy' : ''} ${isBooked ? 'booked' : ''}`}
+                  aria-disabled={past}
+                >
+                  {isBooked && <span class="cell-tag">booked</span>}
+                  {!isBooked && isBusy && <span class="cell-tag">busy</span>}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <button type="button" class="ghost small" onClick={() => setAllHours(!allHours)}>

@@ -194,15 +194,34 @@ code.url {
 }
 .chip.on .chip-dot { background: #08110d; }
 
+.grid-hint { margin: 0 0 6px; }
+
+/* Whole grid area: pan-y allows scrolling but disables double-tap zoom. */
+.cells-wrap {
+  display: flex;
+  gap: 6px;
+  touch-action: pan-y;
+}
+
+/* Touch-scroll handle: touches here pan the page instead of painting. */
+.scroll-rail {
+  flex-shrink: 0;
+  width: 24px;
+  border-radius: 8px;
+  background-color: var(--surface);
+  background-image: radial-gradient(circle, var(--border) 1.5px, transparent 2px);
+  background-size: 24px 10px;
+}
+
 .cells {
-  touch-action: none;
+  flex: 1;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .cell-row {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 48px 1fr;
   align-items: stretch;
 }
 
@@ -215,12 +234,15 @@ code.url {
 }
 
 .cell {
-  height: 34px;
+  height: 17px;
   border: 1px solid var(--border);
   border-top: none;
   background: var(--surface-2);
   position: relative;
+  touch-action: none;
 }
+/* Fainter divider mid-hour so full hours still read at the tight spacing. */
+.cell.hr { border-bottom-color: rgba(42, 46, 55, 0.45); }
 .cell-row:first-child .cell { border-top: 1px solid var(--border); border-radius: 8px 8px 0 0; }
 .cell-row:last-child .cell { border-radius: 0 0 8px 8px; }
 
