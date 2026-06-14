@@ -106,6 +106,20 @@ function memoryKv(): KV {
 
 export const kv: KV = redisKv() ?? memoryKv();
 
+/** Diagnostics: which storage env vars are present (names only) and whether we're on Redis. */
+export function storageInfo() {
+  const names = [
+    'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN',
+    'KV_REST_API_URL', 'KV_REST_API_TOKEN',
+  ];
+  return {
+    usingRedis: redisKv() !== null,
+    present: names.filter((n) => (process.env[n] ?? '').trim().length > 0),
+    // surface any other *REST_API* / *REDIS* var names so a wrong prefix is obvious
+    relatedNames: Object.keys(process.env).filter((k) => /REDIS|REST_API|UPSTASH|KV_/.test(k)),
+  };
+}
+
 export const evKey = (id: string) => `ev:${id}`;
 
 // ---------------------------------------------------------------------------
