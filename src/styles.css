@@ -370,6 +370,19 @@ code.url {
 .booked-card { text-align: center; }
 .booked-card .cal-buttons { justify-content: center; }
 
+.notice {
+  margin: 12px 0;
+  padding: 12px 14px;
+  text-align: left;
+  background: rgba(232, 193, 112, 0.12);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.notice strong { color: var(--text); }
+
 .cal-buttons {
   display: flex;
   gap: 8px;

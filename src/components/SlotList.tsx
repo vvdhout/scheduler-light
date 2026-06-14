@@ -38,9 +38,12 @@ export function SlotList({ slots, eventTitle, hostName, onBook }: Props) {
         <p>
           <strong>{fmtFull(bookedSlot[0])} – {fmtTime(bookedSlot[1])}</strong>
         </p>
+        <p class="notice">
+          ⚠ Attention: make sure to contact <strong>{hostName}</strong> to confirm the slot!
+        </p>
         <p class="muted">Add it to your calendar:</p>
         <CalButtons title={`${eventTitle} with ${hostName}`} start={bookedSlot[0]} end={bookedSlot[1]} />
-        <p class="muted">Then let {hostName} know on Discord:</p>
+        <p class="muted">Then message {hostName} on Discord to confirm:</p>
         <button
           type="button"
           class="primary"
