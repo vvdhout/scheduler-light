@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Win } from '../lib/model';
 import { cellsToWindows, deriveSlots, nowMin, overlaps } from '../lib/model';
 import { fmtDuration, fmtTime } from '../lib/time';
@@ -24,7 +24,25 @@ export function AvailabilityGrid({ days, cells, onChange, durationMin, busy = []
   // `last` is the previous pointer position — fast moves get interpolated so
   // coalesced pointer events can't skip rows.
   const paint = useRef<{ add: boolean; touched: Set<number>; next: Set<number>; last: { x: number; y: number } } | null>(null);
+  const cellsEl = useRef<HTMLDivElement>(null);
   const now = nowMin();
+
+  // iOS Safari ignores `touch-action` for double-tap zoom, so a quick tap-tap
+  // while painting can zoom the page. Suppress the second tap's default. The
+  // listener must be non-passive (JSX touch handlers are passive by default),
+  // so attach it manually. Painting itself uses pointer events, untouched.
+  useEffect(() => {
+    const el = cellsEl.current;
+    if (!el) return;
+    let lastTap = 0;
+    const onTouchEnd = (e: TouchEvent) => {
+      const t = Date.now();
+      if (t - lastTap < 350) e.preventDefault();
+      lastTap = t;
+    };
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
+    return () => el.removeEventListener('touchend', onTouchEnd);
+  }, []);
 
   const dayStart = days[dayIdx] ?? days[0]!;
   const rows = useMemo(() => {
@@ -110,6 +128,7 @@ export function AvailabilityGrid({ days, cells, onChange, durationMin, busy = []
         <div class="scroll-rail" aria-hidden="true" />
         <div
           class="cells"
+          ref={cellsEl}
           onPointerDown={(e) => {
             const cell = cellFromPoint(e.clientX, e.clientY);
             if (cell == null || cell < now) return;

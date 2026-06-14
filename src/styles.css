@@ -254,25 +254,28 @@ code.url {
 .grid-meta { margin: 8px 0 4px; }
 .grid-hint { margin: 0 0 6px; }
 
-/* Whole grid area: pan-y allows scrolling but disables double-tap zoom. */
 .cells-wrap {
   display: flex;
   gap: 6px;
-  touch-action: pan-y;
 }
 
 /* Touch-scroll handle: touches here pan the page instead of painting. */
 .scroll-rail {
   flex-shrink: 0;
   width: 24px;
+  touch-action: pan-y;
   border-radius: var(--radius);
   background-color: var(--surface);
   background-image: radial-gradient(circle, var(--border) 1.5px, transparent 2px);
   background-size: 24px 10px;
 }
 
+/* Painting area: no native touch gestures — no scroll, pinch, or double-tap
+   zoom — so painting can't accidentally zoom. `none` here covers every
+   descendant (cells, labels, rows). Scroll the page via the rail instead. */
 .cells {
   flex: 1;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -297,7 +300,6 @@ code.url {
   border-top: none;
   background: var(--surface-2);
   position: relative;
-  touch-action: none;
 }
 /* Fainter divider mid-hour so full hours still read at the tight spacing. */
 .cell.hr { border-bottom-color: rgba(42, 46, 55, 0.45); }
