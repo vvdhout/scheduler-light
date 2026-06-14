@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { evKey, genId, kv, safe, storageInfo } from './_lib';
+import { evKey, genId, kv, safe, storageInfo } from './_lib.js';
 
 // Visit /api/health in the browser to diagnose storage. Reports which Redis
 // env vars are present and whether a write/read round-trip actually works.

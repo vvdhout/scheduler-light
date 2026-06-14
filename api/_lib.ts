@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Redis } from '@upstash/redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { Booking, EventCore, Win } from '../src/lib/model';
-import { HORIZON_DAYS } from '../src/lib/model';
+import type { Booking, EventCore, Win } from '../src/lib/model.js';
+import { HORIZON_DAYS } from '../src/lib/model.js';
 
 export const TTL_SEC = 30 * 24 * 3600; // pages evaporate after 30 days of inactivity
 export const MAX_RECORD_BYTES = 16384;

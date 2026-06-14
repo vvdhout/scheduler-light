@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   evKey, genId, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, validateCore,
   type EventRecord,
-} from './_lib';
+} from './_lib.js';
 
 export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'POST')) return;

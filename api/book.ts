@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { isValidSlot, overlaps } from '../src/lib/model';
-import { evKey, isId, isStr, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, sha256Hex, TTL_SEC, withLock, type EventRecord } from './_lib';
+import { isValidSlot, overlaps } from '../src/lib/model.js';
+import { evKey, isId, isStr, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, sha256Hex, TTL_SEC, withLock, type EventRecord } from './_lib.js';
 
 export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'POST')) return;

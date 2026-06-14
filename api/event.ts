@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { Win } from '../src/lib/model';
-import { evKey, isId, kv, methodIs, safe, type EventRecord } from './_lib';
+import type { Win } from '../src/lib/model.js';
+import { evKey, isId, kv, methodIs, safe, type EventRecord } from './_lib.js';
 
 export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
   if (!methodIs(req, res, 'GET')) return;
