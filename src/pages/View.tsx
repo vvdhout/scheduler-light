@@ -28,6 +28,12 @@ export function View({ id }: { id: string }) {
     load();
   }, [id]);
 
+  // Browser-tab title (embeds are handled server-side in /api/share).
+  useEffect(() => {
+    document.title = core ? `${core.event} with ${core.name} — Slots` : 'Slots';
+    return () => { document.title = 'Slots'; };
+  }, [core]);
+
   const slots = useMemo(() => (core ? deriveSlots(core, blocked) : []), [core, blocked]);
 
   if (state === 'loading') return <main class="page center muted">Loading…</main>;

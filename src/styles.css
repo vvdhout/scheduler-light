@@ -131,6 +131,13 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 .ghost { background: transparent; box-shadow: none; }
 .ghost:active, .slot-time:active { transform: none; }
+
+.wa {
+  background: #25d366;
+  border-color: #25d366;
+  color: #08110d;
+  font-weight: 600;
+}
 .ghost.small, .cal-buttons .ghost {
   min-height: 32px;
   padding: 4px 10px;

@@ -97,6 +97,14 @@ export function Create() {
             <button type="button" class="ghost" onClick={() => copy(adminUrl, 'a')}>
               {copied === 'a' ? 'Copied!' : 'Copy'}
             </button>
+            <a
+              class="wa button"
+              href={`https://wa.me/?text=${encodeURIComponent(`My Slots admin link (keep this private!): ${adminUrl}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Send to myself on WhatsApp
+            </a>
             <a class="primary button" href={`/a/${result.id}#${result.adminToken}`}>
               Open admin page
             </a>
