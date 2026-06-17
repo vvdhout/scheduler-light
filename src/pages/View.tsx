@@ -1,95 +1,214 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
-import { PasswordGate } from '../components/PasswordGate';
-import { SlotList } from '../components/SlotList';
-import { ApiError, bookSlot, getEvent } from '../lib/api';
-import { decryptCore } from '../lib/crypto';
-import { deriveSlots, type EventCore, type PublicEvent, type Win } from '../lib/model';
-import { fmtDuration, localTz } from '../lib/time';
+import { useEffect, useState } from 'preact/hooks';
+import { CalButtons } from '../components/CalButtons';
+import { DayCalendar } from '../components/DayCalendar';
+import { OverlayBar } from '../components/OverlayBar';
+import { adminGet, adminUnbook, adminUpdate, ApiError, bookSlot, getEvent } from '../lib/api';
+import {
+  cellsToWindows, DEFAULTS, HORIZON_DAYS, nowMin, windowsToCells,
+  type Booking, type Win,
+} from '../lib/model';
+import { ownerToken } from '../lib/store';
+import { fmtFull, fmtTime, localDayStarts } from '../lib/time';
+
+const DURATIONS = [30, 60, 90, 120, 180];
+const fmtDur = (d: number) => (d % 60 === 0 ? `${d / 60}h` : `${d}m`);
 
 export function View({ id }: { id: string }) {
-  const [state, setState] = useState<'loading' | 'gone' | 'error' | 'ready'>('loading');
-  const [pub, setPub] = useState<PublicEvent | null>(null);
-  const [core, setCore] = useState<EventCore | null>(null);
-  const [gate, setGate] = useState<string | undefined>();
+  const token = ownerToken(id);
+  const isOwner = token != null;
+  const [state, setState] = useState<'loading' | 'gone' | 'error' | 'locked' | 'ready'>('loading');
+
+  // shared
+  const [busy, setBusy] = useState<Win[]>([]);
+  const days = localDayStarts(HORIZON_DAYS);
+  const weekFrom = days[0]!;
+  const weekTo = weekFrom + HORIZON_DAYS * 1440;
+
+  // owner
+  const [duration, setDuration] = useState(DEFAULTS.durationMin);
+  const [cells, setCells] = useState<Set<number>>(new Set());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // visitor
+  const [windows, setWindows] = useState<Win[]>([]);
   const [blocked, setBlocked] = useState<Win[]>([]);
+  const [claimed, setClaimed] = useState<Win | null>(null);
+  const [err, setErr] = useState('');
 
-  const load = async () => {
-    try {
-      const ev = await getEvent(id);
-      setPub(ev);
-      setBlocked(ev.blocked);
-      if (!ev.enc) setCore(ev);
-      setState('ready');
-    } catch (e) {
-      setState(e instanceof ApiError && e.status === 404 ? 'gone' : 'error');
-    }
-  };
   useEffect(() => {
-    load();
+    (async () => {
+      try {
+        if (token) {
+          try {
+            const rec = await adminGet(id, token);
+            if (rec.enc) return setState('locked');
+            setDuration(rec.durationMin ?? DEFAULTS.durationMin);
+            // Drop past availability so editing doesn't resurrect it.
+            const live = (rec.windows ?? []).map(([s, e]): Win => [Math.max(s, nowMin() - (nowMin() % 30)), e]).filter(([s, e]) => s < e);
+            setCells(windowsToCells(live, 30));
+            setBookings(rec.bookings ?? []);
+            return setState('ready');
+          } catch (e) {
+            if (e instanceof ApiError && e.status === 404) return setState('gone');
+            // token no longer valid — fall through to visitor view
+          }
+        }
+        const ev = await getEvent(id);
+        if (ev.enc) return setState('locked');
+        setWindows(ev.windows);
+        setBlocked(ev.blocked);
+        setDuration(ev.durationMin);
+        setState('ready');
+      } catch (e) {
+        setState(e instanceof ApiError && e.status === 404 ? 'gone' : 'error');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  // Browser-tab title (embeds are handled server-side in /api/share).
-  useEffect(() => {
-    document.title = core ? `${core.event} with ${core.name} — Slots` : 'Slots';
-    return () => { document.title = 'Slots'; };
-  }, [core]);
-
-  const slots = useMemo(() => (core ? deriveSlots(core, blocked) : []), [core, blocked]);
 
   if (state === 'loading') return <main class="page center muted">Loading…</main>;
   if (state === 'gone')
     return (
       <main class="page center">
         <h1>This link has expired</h1>
-        <p class="muted">The page you’re looking for is gone — ask for a fresh link.</p>
+        <p class="muted">Ask for a fresh one.</p>
+      </main>
+    );
+  if (state === 'locked')
+    return (
+      <main class="page center">
+        <h1>Password-protected</h1>
+        <p class="muted">This page was made with the full version and needs its password.</p>
       </main>
     );
   if (state === 'error')
     return (
       <main class="page center">
         <h1>Something went wrong</h1>
-        <p class="muted">Couldn’t load this page. Try again in a moment.</p>
+        <p class="muted">Try again in a moment.</p>
       </main>
     );
 
-  if (pub!.enc && !core) {
+  // ---- owner: edit availability, see what's been grabbed --------------------
+  if (isOwner) {
+    const save = async () => {
+      setErr('');
+      setSaved(false);
+      setSaving(true);
+      try {
+        const core = { name: '', event: '', durationMin: duration, stepMin: DEFAULTS.stepMin, windows: cellsToWindows(cells, 30) };
+        await adminUpdate(id, token!, { enc: false, core });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Save failed');
+      } finally {
+        setSaving(false);
+      }
+    };
+    const release = async (b: Booking) => {
+      await adminUnbook(id, token!, b);
+      setBookings((bs) => bs.filter((x) => !(x.start === b.start && x.at === b.at)));
+    };
+    const upcoming = bookings.filter((b) => b.end > nowMin()).sort((a, b) => a.start - b.start);
+
     return (
-      <main class="page">
-        <PasswordGate
-          onUnlock={async (pw) => {
-            const { core, gate } = await decryptCore(pub as Extract<PublicEvent, { enc: true }>, pw);
-            setCore(core);
-            setGate(gate);
-          }}
+      <main class="page app">
+        <header class="app-head">
+          <h1>Your availability</h1>
+          <div class="chips dur">
+            {DURATIONS.map((d) => (
+              <button key={d} type="button" class={`chip ${duration === d ? 'on' : ''}`} onClick={() => setDuration(d)}>
+                {fmtDur(d)}
+              </button>
+            ))}
+          </div>
+          <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
+        </header>
+
+        <DayCalendar
+          days={days}
+          durationMin={duration}
+          mode="paint"
+          cells={cells}
+          onChange={setCells}
+          busy={busy}
+          booked={upcoming.map((b): Win => [b.start, b.end])}
         />
+
+        {upcoming.length > 0 && (
+          <div class="card">
+            <h3>{upcoming.length} grabbed</h3>
+            {upcoming.map((b) => (
+              <div key={`${b.start}:${b.at}`} class="row spread">
+                <span>{fmtFull(b.start)} – {fmtTime(b.end)}</span>
+                <button type="button" class="ghost small danger" onClick={() => release(b)}>release</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {err && <p class="error">{err}</p>}
+        <button type="button" class="primary big" disabled={saving} onClick={save}>
+          {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save changes'}
+        </button>
       </main>
     );
   }
 
-  const onBook = async (slot: Win, by: string, note: string) => {
+  // ---- visitor: grab a slot -------------------------------------------------
+  if (claimed) {
+    return (
+      <main class="page">
+        <div class="card booked-card">
+          <h2>Grabbed ✓</h2>
+          <p><strong>{fmtFull(claimed[0])} – {fmtTime(claimed[1])}</strong></p>
+          <p class="muted">It’s now off the table for everyone else.</p>
+          <CalButtons title="Meeting" start={claimed[0]} end={claimed[1]} />
+          <button type="button" class="ghost" onClick={() => setClaimed(null)}>Back to calendar</button>
+        </div>
+      </main>
+    );
+  }
+
+  const claim = async (slot: Win) => {
+    setErr('');
     try {
-      await bookSlot(id, slot, by, note, gate);
+      await bookSlot(id, slot, '', '');
       setBlocked((b) => [...b, slot]);
+      setClaimed(slot);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        // Someone beat them to it — refresh blocked ranges so the list updates.
         const fresh = await getEvent(id);
-        setBlocked(fresh.blocked);
-        throw new ApiError(409, 'That slot was just taken — pick another.');
+        if (!fresh.enc) setBlocked(fresh.blocked);
+        setErr('That slot was just taken — pick another.');
+      } else {
+        setErr(e instanceof Error ? e.message : 'Could not grab that slot');
       }
-      throw e;
     }
   };
 
   return (
-    <main class="page">
-      <header class="view-head">
-        <h1>{core!.event}</h1>
-        <p class="muted">
-          with <strong>{core!.name}</strong> · {fmtDuration(core!.durationMin)} · times shown in {localTz()}
-        </p>
+    <main class="page app">
+      <header class="app-head">
+        <h1>Pick a time</h1>
+        <p class="muted small-text">Tap a green {fmtDur(duration)} slot to grab it. No sign-up.</p>
+        <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
       </header>
-      <SlotList slots={slots} eventTitle={core!.event} hostName={core!.name} onBook={onBook} />
+
+      <DayCalendar
+        days={days}
+        durationMin={duration}
+        mode="claim"
+        windows={windows}
+        booked={blocked}
+        busy={busy}
+        onClaim={claim}
+      />
+
+      {err && <p class="error">{err}</p>}
     </main>
   );
 }

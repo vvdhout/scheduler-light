@@ -419,3 +419,65 @@ code.url {
 
 .view-head { margin-bottom: 8px; }
 .view-head p { margin: 0; }
+
+/* ===== ultra-light: full-height app + Apple-style day calendar ===== */
+.page.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 620px;
+  padding: 12px 12px calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+}
+.app-head { flex: 0 0 auto; }
+.app-head h1 { margin: 0 0 8px; }
+.app-head p { margin: 0; }
+.chips.dur { gap: 6px; margin-bottom: 6px; }
+.chips.dur .chip { min-height: 34px; padding: 4px 12px; }
+.page.app .primary.big { flex: 0 0 auto; margin-top: 4px; }
+
+.overlay-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.linkish {
+  background: none; border: none; box-shadow: none; padding: 0; min-height: 0;
+  color: var(--accent); text-decoration: underline; font-size: inherit; display: inline;
+}
+
+.daycal { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.daycal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.daycal-date { font-family: var(--pixel); font-size: 0.78rem; color: var(--gold); text-align: center; flex: 1; }
+.daycal-nav { min-height: 34px; min-width: 38px; padding: 2px 10px; font-size: 1.2rem; box-shadow: none; }
+.daycal-nav:disabled { opacity: 0.25; }
+
+.daycal-strip { display: flex; gap: 4px; }
+.daycal-pip {
+  flex: 1; min-height: 0; padding: 4px 0; flex-direction: column; gap: 0; line-height: 1.15;
+  border-radius: var(--radius); background: var(--surface-2); position: relative; box-shadow: none;
+}
+.daycal-pip.on { background: var(--accent); border-color: var(--accent); color: #08110d; }
+.daycal-pip.empty { opacity: 0.3; }
+.pip-wd { font-size: 0.58rem; opacity: 0.8; }
+.pip-num { font-size: 0.95rem; font-weight: 700; font-family: var(--pixel); }
+.pip-dot { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.daycal-pip.on .pip-dot { background: #08110d; }
+
+.daycal-body { flex: 1 1 auto; min-height: 0; overflow: hidden; position: relative; user-select: none; -webkit-user-select: none; }
+.daycal-grid { position: relative; margin-left: 46px; }
+.daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); pointer-events: none; }
+.daycal-hrlabel { position: absolute; left: -46px; top: -7px; width: 42px; text-align: right; font-size: 0.62rem; color: var(--muted); }
+
+.daycal-free { position: absolute; left: 2px; right: 2px; background: var(--accent-dim); border-left: 3px solid var(--accent); border-radius: 3px; }
+.daycal-free.tappable { background: rgba(79, 209, 165, 0.3); }
+.daycal-busy {
+  position: absolute; left: 2px; right: 2px; border-radius: 3px; pointer-events: none;
+  background-image: repeating-linear-gradient(-45deg, transparent 0 5px, rgba(242, 139, 130, 0.18) 5px 10px);
+  border: 1px dashed rgba(242, 139, 130, 0.4);
+}
+.daycal-taken {
+  position: absolute; left: 2px; right: 2px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 3px; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none;
+}
+.daycal-taken span { font-size: 0.6rem; color: var(--muted); }
+.daycal-now { position: absolute; left: 0; right: 0; border-top: 2px solid var(--danger); pointer-events: none; }
+.daycal-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+.daycal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; }

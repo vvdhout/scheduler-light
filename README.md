@@ -1,13 +1,23 @@
-# Slots — a lightweight scheduler
+# Slots — ultra-light
 
-Share your availability with one link. No accounts, no bots, no tracking.
+A zero-friction way to show when you're free and let people grab a time. No
+accounts, no details, no booking-management overhead — just a tool to visualize
+availability and pick a common slot. (This is the **ultra-light** branch; the
+`main` branch has the fuller version with names, passwords, and an admin page.)
 
-- **Creator:** paint when you're free over the next 7 days, get a public share link and a private admin link.
-- **Visitor:** sees open slots **in their own timezone**, books one with just a (Discord) name, adds it to Google / Outlook / Apple Calendar, and pings you on Discord.
-- Booked slots auto-block for everyone else. Manage bookings and repaint availability anytime via your admin link.
-- Optional password = real client-side AES-GCM encryption. The server only ever stores ciphertext.
+- **Create:** open the app, pick a slot length, and paint when you're free over
+  the next 7 days on an Apple-Calendar-style day view (swipe between days). Tap
+  **Share** — that's it. No name, no event title, no password.
+- **Visitor:** opens the link, sees your availability in **their own timezone**,
+  and taps a green slot to grab it. No sign-up, no name. Grabbed slots grey out
+  for everyone else. Empty days are greyed and auto-skipped.
+- **Edit & see grabs:** whoever created the page (identified by *this browser* —
+  no accounts, no admin link) can reopen the link to repaint availability and see
+  what's been grabbed. Clearing browser data or switching devices loses edit access.
 - Pages self-destruct after **30 days of inactivity** (Redis TTL — no cleanup jobs).
-- Optional: overlay your Google / Microsoft calendar's busy times while painting. Ephemeral, client-side OAuth — no tokens ever reach the server.
+- Optional: overlay your Google / Microsoft calendar's busy times — on **both**
+  painting and viewing — to compare. Ephemeral, client-side OAuth; approve once
+  and it re-applies silently afterward. No tokens or event data ever reach the server.
 
 ## Stack
 

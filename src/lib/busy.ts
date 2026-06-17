@@ -1,14 +1,28 @@
 // Ephemeral, client-side calendar busy overlays. Tokens live only in this
-// tab's memory; nothing is sent to or stored on our server. Buttons are
-// hidden entirely unless the matching VITE_*_CLIENT_ID env var is set.
+// tab's memory (Google) or the auth library's own cache (Microsoft); we never
+// send calendar data to or store events on our server. Buttons/overlays are
+// inert unless the matching VITE_*_CLIENT_ID env var is set at build time.
+//
+// `silent: true` skips the consent popup — used to re-overlay automatically on
+// later visits once the user has approved once (see store.overlayPref).
 
 import type { Win } from './model';
 
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 export const MS_CLIENT_ID = import.meta.env.VITE_MS_CLIENT_ID as string | undefined;
 
+export type OverlayProvider = 'google' | 'microsoft';
+
+/** Which overlay providers are configured in this build. */
+export function overlayProviders(): OverlayProvider[] {
+  const out: OverlayProvider[] = [];
+  if (GOOGLE_CLIENT_ID) out.push('google');
+  if (MS_CLIENT_ID) out.push('microsoft');
+  return out;
+}
+
 interface GoogleTokenClient {
-  requestAccessToken(): void;
+  requestAccessToken(overrides?: { prompt?: string }): void;
 }
 declare global {
   interface Window {
@@ -43,18 +57,18 @@ const toWin = (startIso: string, endIso: string): Win => [
   Math.ceil(Date.parse(endIso) / 60000),
 ];
 
-/** Pops Google consent, queries FreeBusy for [fromMin, toMin), returns busy ranges. */
-export async function googleBusy(fromMin: number, toMin: number): Promise<Win[]> {
+/** Pops Google consent (or refreshes silently), queries FreeBusy, returns busy ranges. */
+export async function googleBusy(fromMin: number, toMin: number, opts: { silent?: boolean } = {}): Promise<Win[]> {
   await loadScript('https://accounts.google.com/gsi/client');
   const token = await new Promise<string>((resolve, reject) => {
-    window.google!.accounts.oauth2
-      .initTokenClient({
-        client_id: GOOGLE_CLIENT_ID!,
-        scope: 'https://www.googleapis.com/auth/calendar.freebusy',
-        callback: (resp) => (resp.access_token ? resolve(resp.access_token) : reject(new Error(resp.error ?? 'No token'))),
-        error_callback: (err) => reject(new Error(err.message ?? 'Google sign-in cancelled')),
-      })
-      .requestAccessToken();
+    const client = window.google!.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID!,
+      scope: 'https://www.googleapis.com/auth/calendar.freebusy',
+      callback: (resp) => (resp.access_token ? resolve(resp.access_token) : reject(new Error(resp.error ?? 'No token'))),
+      error_callback: (err) => reject(new Error(err.message ?? 'Google sign-in cancelled')),
+    });
+    // 'none' = no UI; only works after the user has consented once.
+    client.requestAccessToken({ prompt: opts.silent ? 'none' : '' });
   });
   const res = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
     method: 'POST',
@@ -70,17 +84,24 @@ export async function googleBusy(fromMin: number, toMin: number): Promise<Win[]>
   return (json.calendars?.primary?.busy ?? []).map((b) => toWin(b.start, b.end));
 }
 
-/** Pops Microsoft consent, reads calendarView for [fromMin, toMin), returns non-free ranges. */
-export async function microsoftBusy(fromMin: number, toMin: number): Promise<Win[]> {
+/** Reads Microsoft calendarView for [fromMin, toMin); silent uses the cached account. */
+export async function microsoftBusy(fromMin: number, toMin: number, opts: { silent?: boolean } = {}): Promise<Win[]> {
   const { PublicClientApplication } = await import('@azure/msal-browser');
   const pca = new PublicClientApplication({
     auth: { clientId: MS_CLIENT_ID!, authority: 'https://login.microsoftonline.com/common', redirectUri: location.origin },
   });
   await pca.initialize();
-  const login = await pca.loginPopup({ scopes: ['Calendars.Read'] });
-  const token =
-    login.accessToken ||
-    (await pca.acquireTokenSilent({ scopes: ['Calendars.Read'], account: login.account })).accessToken;
+  const scopes = ['Calendars.Read'];
+  let token: string;
+  const account = pca.getAllAccounts()[0];
+  if (account) {
+    token = (await pca.acquireTokenSilent({ scopes, account })).accessToken;
+  } else if (opts.silent) {
+    throw new Error('No cached Microsoft session');
+  } else {
+    const login = await pca.loginPopup({ scopes });
+    token = login.accessToken || (await pca.acquireTokenSilent({ scopes, account: login.account })).accessToken;
+  }
   const params = new URLSearchParams({
     startDateTime: new Date(fromMin * 60000).toISOString(),
     endDateTime: new Date(toMin * 60000).toISOString(),
@@ -97,4 +118,9 @@ export async function microsoftBusy(fromMin: number, toMin: number): Promise<Win
   return (json.value ?? [])
     .filter((e) => e.showAs !== 'free')
     .map((e) => toWin(e.start.dateTime + 'Z', e.end.dateTime + 'Z'));
+}
+
+/** Fetch busy ranges for a provider; `silent` avoids any popup. */
+export function loadBusy(provider: OverlayProvider, fromMin: number, toMin: number, opts: { silent?: boolean } = {}) {
+  return provider === 'google' ? googleBusy(fromMin, toMin, opts) : microsoftBusy(fromMin, toMin, opts);
 }

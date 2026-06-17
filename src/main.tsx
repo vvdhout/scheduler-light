@@ -1,12 +1,13 @@
 import { render } from 'preact';
-import { Admin } from './pages/Admin';
 import { Create } from './pages/Create';
 import { View } from './pages/View';
 import './styles.css';
 
 function App() {
-  const m = location.pathname.match(/^\/(s|a)\/([A-Za-z0-9]{10,40})$/);
-  if (m) return m[1] === 's' ? <View id={m[2]!} /> : <Admin id={m[2]!} />;
+  // /s/:id (and legacy /a/:id) open the shared page; ownership is decided by
+  // this device (lib/store), so there's no separate admin route.
+  const m = location.pathname.match(/^\/(?:s|a)\/([A-Za-z0-9]{10,40})$/);
+  if (m) return <View id={m[1]!} />;
   return <Create />;
 }
 

@@ -145,7 +145,7 @@ export function validateCore(core: unknown): EventCore | null {
   if (typeof core !== 'object' || core === null) return null;
   const c = core as Record<string, unknown>;
   const nowMin = Math.floor(Date.now() / 60000);
-  if (!isStr(c.name, 1, 80) || !isStr(c.event, 1, 120)) return null;
+  if (!isStr(c.name, 0, 80) || !isStr(c.event, 0, 120)) return null;
   if (!isInt(c.durationMin) || c.durationMin < 15 || c.durationMin > 480) return null;
   if (!isInt(c.stepMin) || ![15, 30, 60].includes(c.stepMin)) return null;
   if (!Array.isArray(c.windows) || c.windows.length > 200) return null;
