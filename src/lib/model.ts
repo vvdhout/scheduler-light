@@ -88,3 +88,26 @@ export function isValidSlot(core: Pick<EventCore, 'durationMin' | 'stepMin' | 'w
   if (end - start !== core.durationMin) return false;
   return core.windows.some(([s, e]) => start >= s && end <= e && (start - s) % core.stepMin === 0);
 }
+
+/** Any step-aligned range that fits inside one window (used when visitors pick
+ *  their own length by painting, rather than a fixed-duration slot). */
+export function isValidRange(core: Pick<EventCore, 'stepMin' | 'windows'>, start: number, end: number): boolean {
+  if (end <= start || (end - start) % core.stepMin !== 0) return false;
+  return core.windows.some(([s, e]) => start >= s && end <= e && (start - s) % core.stepMin === 0);
+}
+
+/** Contiguous free ranges: windows minus past minus already-booked, on the grid. */
+export function freeSegments(windows: Win[], blocked: Win[], from = nowMin(), step = 30): Win[] {
+  const free = new Set<number>();
+  for (const [s, e] of windows) for (let t = s; t + step <= e; t += step) free.add(t);
+  for (const c of [...free]) {
+    if (c < from || blocked.some(([bs, be]) => c < be && bs < c + step)) free.delete(c);
+  }
+  const out: Win[] = [];
+  for (const c of [...free].sort((a, b) => a - b)) {
+    const last = out[out.length - 1];
+    if (last && last[1] === c) last[1] = c + step;
+    else out.push([c, c + step]);
+  }
+  return out;
+}

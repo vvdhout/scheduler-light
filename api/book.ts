@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { isValidSlot, overlaps } from '../src/lib/model.js';
+import { isValidRange, overlaps } from '../src/lib/model.js';
 import { evKey, isId, isStr, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, sha256Hex, TTL_SEC, withLock, type EventRecord } from './_lib.js';
 
 export default safe(async function handler(req: VercelRequest, res: VercelResponse) {
@@ -28,8 +28,8 @@ export default safe(async function handler(req: VercelRequest, res: VercelRespon
         return { status: 403, error: 'This page requires its password to book.' };
       }
     } else {
-      const core = { durationMin: record.durationMin!, stepMin: record.stepMin!, windows: record.windows! };
-      if (!isValidSlot(core, s, e)) return { status: 400, error: 'That slot is not offered.' };
+      const core = { stepMin: record.stepMin!, windows: record.windows! };
+      if (!isValidRange(core, s, e)) return { status: 400, error: 'That time is not available.' };
     }
 
     if (record.bookings.some((b) => overlaps(s, e, b.start, b.end))) {

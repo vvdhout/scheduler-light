@@ -1,53 +1,48 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Win } from '../lib/model';
-import { cellsToWindows, deriveSlots, nowMin, overlaps } from '../lib/model';
-import { fmtDuration, fmtTime } from '../lib/time';
+import { cellsToWindows, nowMin } from '../lib/model';
+import { fmtTime } from '../lib/time';
 
 const CELL_MIN = 30;
 const PXH = 48; // px per hour (the hours scroll vertically)
 const HOURS = 24;
 const GRID_H = HOURS * PXH;
 const LONGPRESS_MS = 320;
-const JITTER = 8; // px of movement that turns a press into a scroll/swipe
-const SWIPE = 45; // px horizontal to change day
+const JITTER = 8;
+const SWIPE = 45;
 const WD = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const DNUM = new Intl.DateTimeFormat(undefined, { day: 'numeric' });
 const DATE_FULL = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
-type Mode = 'paint' | 'claim' | 'readonly';
+type Mode = 'paint' | 'select' | 'readonly';
 
 interface Props {
   days: number[];
-  durationMin: number;
   mode: Mode;
-  cells?: Set<number>;
+  cells?: Set<number>; // paint mode availability
   onChange?: (c: Set<number>) => void;
-  windows?: Win[];
-  busy?: Win[];
-  booked?: Win[];
-  onClaim?: (slot: Win) => void;
+  windows?: Win[]; // select/readonly: available (free) ranges to show & constrain to
+  busy?: Win[]; // own-calendar overlay
+  booked?: Win[]; // taken ranges
+  onSelect?: (sel: Win | null) => void; // select mode: the visitor's painted range
 }
 
-export function DayCalendar({ days, durationMin, mode, cells, onChange, windows, busy = [], booked = [], onClaim }: Props) {
+export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], booked = [], onSelect }: Props) {
   const now = nowMin();
-
   const wins = useMemo(
     () => (mode === 'paint' ? cellsToWindows(cells ?? new Set(), CELL_MIN) : windows ?? []),
     [mode, cells, windows],
   );
-  const slots = useMemo(
-    () => deriveSlots({ durationMin, stepMin: CELL_MIN, windows: wins }, booked, now),
-    [wins, durationMin, booked, now],
-  );
-  const slotsOnDay = (d: number) => slots.filter((s) => s[0] >= d && s[0] < d + 1440).length;
+  const winsOnDay = (d: number) => wins.some(([s, e]) => s < d + 1440 && d < e);
   const cellsOnDay = (d: number) => {
     let n = 0;
     for (const c of cells ?? []) if (c >= d && c < d + 1440) n++;
     return n;
   };
-  const dayUsable = (i: number) => (mode === 'paint' ? true : slotsOnDay(days[i]!) > 0);
+  const dayUsable = (i: number) => (mode === 'paint' ? true : winsOnDay(days[i]!));
 
   const [dayIdx, setDayIdx] = useState(0);
+  const [sel, setSel] = useState<Win | null>(null);
   useEffect(() => {
     if (mode === 'paint') return;
     if (!dayUsable(dayIdx)) {
@@ -55,27 +50,25 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
       if (j >= 0) setDayIdx(j);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots.length]);
+  }, [wins]);
 
   const dayStart = days[dayIdx] ?? days[0]!;
   const isToday = dayIdx === 0;
   const go = (dir: 1 | -1) => {
     let j = dayIdx + dir;
     while (j >= 0 && j < days.length && !dayUsable(j)) j += dir;
-    if (j >= 0 && j < days.length) setDayIdx(j);
+    if (j >= 0 && j < days.length) { setDayIdx(j); setSel(null); onSelect?.(null); }
   };
 
   const body = useRef<HTMLDivElement>(null);
   const lastTouch = useRef(0);
-  const mdown = useRef<{ start: number; add: boolean; base: Set<number> } | null>(null);
+  const mdown = useRef<{ anchor: number; add: boolean; base: Set<number> } | null>(null);
 
-  // Latest props/state for the once-attached native touch listeners.
   const ctx = useRef<{
-    mode: Mode; dayStart: number; durationMin: number; cells: Set<number>;
-    onChange?: (c: Set<number>) => void; wins: Win[]; booked: Win[]; now: number;
-    onClaim?: (s: Win) => void; go: (d: 1 | -1) => void;
+    mode: Mode; dayStart: number; cells: Set<number>; onChange?: (c: Set<number>) => void;
+    wins: Win[]; now: number; onSelect?: (s: Win | null) => void; setSel: (s: Win | null) => void; go: (d: 1 | -1) => void;
   }>(null!);
-  ctx.current = { mode, dayStart, durationMin, cells: cells ?? new Set(), onChange, wins, booked, now, onClaim, go };
+  ctx.current = { mode, dayStart, cells: cells ?? new Set(), onChange, wins, now, onSelect, setSel, go };
 
   const timeToY = (mid: number) => (mid / 60) * PXH;
   const cellAtClientY = (clientY: number) => {
@@ -84,58 +77,64 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
     const snapped = Math.floor((y / PXH) * 60 / CELL_MIN) * CELL_MIN;
     return ctx.current.dayStart + Math.min(Math.max(snapped, 0), HOURS * 60 - CELL_MIN);
   };
-  const paintRange = (cur: number, st: { start: number; add: boolean; base: Set<number> }) => {
-    const lo = Math.min(st.start, cur), hi = Math.max(st.start, cur);
-    const next = new Set(st.base);
+  const paintRange = (anchor: number, cur: number, add: boolean, base: Set<number>) => {
+    const lo = Math.min(anchor, cur), hi = Math.max(anchor, cur);
+    const next = new Set(base);
     for (let c = lo; c <= hi; c += CELL_MIN) {
       if (c < ctx.current.now) continue;
-      st.add ? next.add(c) : next.delete(c);
+      add ? next.add(c) : next.delete(c);
     }
     ctx.current.onChange?.(next);
   };
-  const claimAt = (cell: number) => {
-    const c = ctx.current;
-    if (!c.onClaim) return;
-    const win = c.wins.find(([s, e]) => cell >= s && cell < e);
-    if (!win) return;
-    let start = Math.min(cell, win[1] - c.durationMin);
-    start = win[0] + Math.floor((start - win[0]) / CELL_MIN) * CELL_MIN;
-    const end = start + c.durationMin;
-    if (start < win[0] || end > win[1] || start < c.now) return;
-    if (c.booked.some(([s, e]) => overlaps(start, end, s, e))) return;
-    c.onClaim([start, end]);
+  const selectRange = (anchor: number, cur: number) => {
+    const seg = ctx.current.wins.find(([s, e]) => anchor >= s && anchor < e);
+    if (!seg) return;
+    const start = Math.max(seg[0], Math.min(anchor, cur));
+    const end = Math.min(seg[1], Math.max(anchor, cur) + CELL_MIN);
+    if (end <= start) return;
+    ctx.current.setSel([start, end]);
+    ctx.current.onSelect?.([start, end]);
   };
 
-  // Open scrolled to roughly now (today) or the morning.
   useLayoutEffect(() => {
     const el = body.current;
     if (el) el.scrollTop = (isToday ? Math.max(0, new Date().getHours() - 1) : 7) * PXH;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Touch gestures: vertical drag = native scroll, horizontal = day swipe,
-  // press-and-hold = paint (Apple Calendar style). Listeners are non-passive
-  // so paint can stop the scroll; attached once and read live state via ctx.
+  // Touch: vertical drag scrolls, horizontal swipes days, press-and-hold draws
+  // (paints availability or, for visitors, marks a range within a free window).
   useEffect(() => {
     const el = body.current;
     if (!el) return;
-    let g: { sx: number; sy: number; mode: 'idle' | 'scroll' | 'swipe' | 'paint'; dx: number; timer: number; paint: { start: number; add: boolean; base: Set<number> } } | null = null;
+    let g: { sx: number; sy: number; mode: 'idle' | 'scroll' | 'swipe' | 'draw'; dx: number; timer: number; anchor: number; add: boolean; base: Set<number> } | null = null;
+
+    const startDraw = () => {
+      if (!g) return;
+      g.mode = 'draw';
+      g.anchor = cellAtClientY(g.sy);
+      try { navigator.vibrate?.(10); } catch { /* unsupported */ }
+      if (ctx.current.mode === 'paint') {
+        g.add = !ctx.current.cells.has(g.anchor);
+        g.base = new Set(ctx.current.cells);
+        paintRange(g.anchor, g.anchor, g.add, g.base);
+      } else {
+        selectRange(g.anchor, g.anchor);
+      }
+    };
+    const draw = (cur: number) => {
+      if (!g) return;
+      if (ctx.current.mode === 'paint') paintRange(g.anchor, cur, g.add, g.base);
+      else selectRange(g.anchor, cur);
+    };
 
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) { g = null; return; }
       const t = e.touches[0]!;
-      g = { sx: t.clientX, sy: t.clientY, mode: 'idle', dx: 0, timer: 0, paint: { start: 0, add: false, base: new Set(ctx.current.cells) } };
-      if (ctx.current.mode === 'paint') {
+      g = { sx: t.clientX, sy: t.clientY, mode: 'idle', dx: 0, timer: 0, anchor: 0, add: false, base: new Set() };
+      if (ctx.current.mode !== 'readonly') {
         const gg = g;
-        gg.timer = window.setTimeout(() => {
-          if (!g || g !== gg || g.mode !== 'idle') return;
-          g.mode = 'paint';
-          const c = cellAtClientY(g.sy);
-          g.paint.start = c;
-          g.paint.add = !ctx.current.cells.has(c);
-          try { navigator.vibrate?.(10); } catch { /* unsupported */ }
-          paintRange(c, g.paint);
-        }, LONGPRESS_MS);
+        gg.timer = window.setTimeout(() => { if (g === gg && g.mode === 'idle') startDraw(); }, LONGPRESS_MS);
       }
     };
     const onMove = (e: TouchEvent) => {
@@ -148,9 +147,8 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
         clearTimeout(g.timer);
         g.mode = Math.abs(dx) > Math.abs(dy) ? 'swipe' : 'scroll';
       }
-      if (g.mode === 'paint') { e.preventDefault(); paintRange(cellAtClientY(t.clientY), g.paint); }
+      if (g.mode === 'draw') { e.preventDefault(); draw(cellAtClientY(t.clientY)); }
       else if (g.mode === 'swipe') e.preventDefault();
-      // 'scroll' → let the browser scroll natively
     };
     const onEnd = (e: TouchEvent) => {
       lastTouch.current = Date.now();
@@ -159,11 +157,11 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
       const cur = g;
       g = null;
       if (cur.mode === 'idle') {
-        e.preventDefault(); // no ghost click
+        e.preventDefault();
         const c = cellAtClientY(cur.sy);
         if (ctx.current.mode === 'paint') {
           if (c >= ctx.current.now) { const n = new Set(ctx.current.cells); n.has(c) ? n.delete(c) : n.add(c); ctx.current.onChange?.(n); }
-        } else if (ctx.current.mode === 'claim') claimAt(c);
+        } else if (ctx.current.mode === 'select') selectRange(c, c);
       } else if (cur.mode === 'swipe' && Math.abs(cur.dx) > SWIPE) {
         ctx.current.go(cur.dx < 0 ? 1 : -1);
       }
@@ -182,21 +180,26 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
     };
   }, []);
 
-  // Mouse (desktop): drag paints immediately, click toggles/claims. The guard
-  // ignores the synthetic mouse events that follow a touch.
+  // Mouse (desktop): drag draws, click toggles/selects.
   const onMouseDown = (e: MouseEvent) => {
-    if (Date.now() - lastTouch.current < 500 || ctx.current.mode !== 'paint') return;
+    if (Date.now() - lastTouch.current < 500 || ctx.current.mode === 'readonly') return;
     const c = cellAtClientY(e.clientY);
-    const st = { start: c, add: !ctx.current.cells.has(c), base: new Set(ctx.current.cells) };
-    mdown.current = st;
-    if (c >= ctx.current.now) paintRange(c, st);
+    if (ctx.current.mode === 'paint') {
+      const st = { anchor: c, add: !ctx.current.cells.has(c), base: new Set(ctx.current.cells) };
+      mdown.current = st;
+      if (c >= ctx.current.now) paintRange(c, c, st.add, st.base);
+    } else {
+      mdown.current = { anchor: c, add: false, base: new Set() };
+      selectRange(c, c);
+    }
   };
-  const onMouseMove = (e: MouseEvent) => { if (mdown.current) paintRange(cellAtClientY(e.clientY), mdown.current); };
+  const onMouseMove = (e: MouseEvent) => {
+    const st = mdown.current;
+    if (!st) return;
+    if (ctx.current.mode === 'paint') paintRange(st.anchor, cellAtClientY(e.clientY), st.add, st.base);
+    else selectRange(st.anchor, cellAtClientY(e.clientY));
+  };
   const onMouseUp = () => { mdown.current = null; };
-  const onClick = (e: MouseEvent) => {
-    if (Date.now() - lastTouch.current < 500) return;
-    if (ctx.current.mode === 'claim') claimAt(cellAtClientY(e.clientY));
-  };
 
   const block = (s: number, e: number) => {
     const a = Math.max(s - dayStart, 0), b = Math.min(e - dayStart, HOURS * 60);
@@ -205,6 +208,7 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
 
   const date = new Date(dayStart * 60000);
   const nowOfDay = new Date().getHours() * 60 + new Date().getMinutes();
+  const selOnDay = sel && sel[0] >= dayStart && sel[0] < dayStart + 1440 ? sel : null;
 
   return (
     <div class="daycal">
@@ -225,7 +229,7 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
               type="button"
               class={`daycal-pip ${i === dayIdx ? 'on' : ''} ${!usable ? 'empty' : ''}`}
               disabled={!usable && mode !== 'paint'}
-              onClick={() => setDayIdx(i)}
+              onClick={() => { setDayIdx(i); setSel(null); onSelect?.(null); }}
             >
               <span class="pip-wd">{WD.format(dd)}</span>
               <span class="pip-num">{DNUM.format(dd)}</span>
@@ -235,15 +239,7 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
         })}
       </div>
 
-      <div
-        class="daycal-body"
-        ref={body}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        onClick={onClick}
-      >
+      <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div class="daycal-grid" style={{ height: `${GRID_H}px` }}>
           {Array.from({ length: HOURS + 1 }, (_, h) => (
             <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
@@ -257,12 +253,16 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
           })}
           {wins.map(([s, e], i) => {
             const b = block(s, e);
-            return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'claim' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
+            return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
           })}
           {booked.map(([s, e], i) => {
             const b = block(s, e);
             return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>;
           })}
+          {selOnDay && (() => {
+            const b = block(selOnDay[0], selOnDay[1]);
+            return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
+          })()}
           {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
         </div>
       </div>
@@ -270,9 +270,9 @@ export function DayCalendar({ days, durationMin, mode, cells, onChange, windows,
       <div class="daycal-foot">
         <span class="muted small-text">
           {mode === 'paint'
-            ? `${slots.length} ${fmtDuration(durationMin)} slot${slots.length === 1 ? '' : 's'} · hold to paint, swipe for days`
-            : mode === 'claim'
-              ? 'Tap a green slot to grab it · swipe for days'
+            ? 'Hold to paint your free time · swipe for days'
+            : mode === 'select'
+              ? 'Hold to mark when you can meet · swipe for days'
               : 'Swipe for days'}
         </span>
       </div>

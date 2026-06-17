@@ -7,11 +7,7 @@ import { cellsToWindows, DEFAULTS, HORIZON_DAYS, type Win } from '../lib/model';
 import { rememberPage } from '../lib/store';
 import { localDayStarts } from '../lib/time';
 
-const DURATIONS = [30, 60, 90, 120, 180];
-const fmtDur = (d: number) => (d % 60 === 0 ? `${d / 60}h` : `${d}m`);
-
 export function Create() {
-  const [duration, setDuration] = useState(DEFAULTS.durationMin);
   const [cells, setCells] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState<Win[]>([]);
   const [working, setWorking] = useState(false);
@@ -27,11 +23,10 @@ export function Create() {
     setError('');
     const windows = cellsToWindows(cells, 30);
     if (windows.length === 0) return setError('Paint when you’re free first.');
-    if (!windows.some(([s, e]) => e - s >= duration))
-      return setError(`No window fits a ${fmtDur(duration)} slot yet — paint a longer block or shorten the slot.`);
     setWorking(true);
     try {
-      const core = { name: '', event: '', durationMin: duration, stepMin: DEFAULTS.stepMin, windows };
+      // No fixed duration: visitors pick their own length by painting a range.
+      const core = { name: '', event: '', durationMin: 30, stepMin: DEFAULTS.stepMin, windows };
       const adminToken = randomToken();
       const adminHash = await sha256Hex(adminToken);
       const { id } = await createEvent({ adminHash, enc: false, core });
@@ -46,11 +41,11 @@ export function Create() {
 
   if (result) {
     const url = `${location.origin}/s/${result}`;
-    const wa = `https://wa.me/?text=${encodeURIComponent(`When are you free? Grab a slot: ${url}`)}`;
+    const wa = `https://wa.me/?text=${encodeURIComponent(`When are you free? Mark a time: ${url}`)}`;
     return (
       <main class="page">
         <h1>Shared ✓</h1>
-        <p class="muted">Send this link. People tap a slot that works — no sign-up.</p>
+        <p class="muted">Send this link. People mark a time that works — no sign-up.</p>
         <code class="url">{url}</code>
         <div class="row">
           <button
@@ -78,22 +73,15 @@ export function Create() {
   return (
     <main class="page app">
       <header class="app-head">
-        <h1>When are you free?</h1>
-        <div class="chips dur">
-          {DURATIONS.map((d) => (
-            <button key={d} type="button" class={`chip ${duration === d ? 'on' : ''}`} onClick={() => setDuration(d)}>
-              {fmtDur(d)}
-            </button>
-          ))}
-        </div>
+        <p class="app-hint">Paint when you’re free over the next week, then share.</p>
         <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
       </header>
 
-      <DayCalendar days={days} durationMin={duration} mode="paint" cells={cells} onChange={setCells} busy={busy} />
+      <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} />
 
       {error && <p class="error">{error}</p>}
-      <button type="button" class="primary big" disabled={working} onClick={share}>
-        {working ? 'Sharing…' : 'Share availability'}
+      <button type="button" class="fab" disabled={working} onClick={share}>
+        {working ? '…' : 'Share'}
       </button>
     </main>
   );
