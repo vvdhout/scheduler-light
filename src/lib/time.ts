@@ -3,10 +3,10 @@
 
 export const localTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const timeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+const timeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
 const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 const fullFmt = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+  weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
 });
 
 export const fmtTime = (min: number) => timeFmt.format(new Date(min * 60000));
