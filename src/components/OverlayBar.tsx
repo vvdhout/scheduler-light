@@ -21,6 +21,7 @@ export function OverlayBar({ fromMin, toMin, onBusy }: Props) {
   const [active, setActive] = useState<OverlayProvider | null>(null);
   const [loading, setLoading] = useState<OverlayProvider | null>(null);
   const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState<OverlayProvider | null>(null); // pre-consent dialog
 
   // Auto-overlay silently if the user has approved a provider before.
   useEffect(() => {
@@ -68,13 +69,33 @@ export function OverlayBar({ fromMin, toMin, onBusy }: Props) {
         <>
           <span class="muted small-text">Overlay your calendar to compare:</span>
           {providers.map((p) => (
-            <button key={p} type="button" class="ghost small" disabled={loading !== null} onClick={() => connect(p)}>
+            <button key={p} type="button" class="ghost small" disabled={loading !== null} onClick={() => setConfirm(p)}>
               {loading === p ? 'Loading…' : LABEL[p]}
             </button>
           ))}
         </>
       )}
       {error && <span class="error small-text">{error}</span>}
+
+      {confirm && (
+        <div class="modal-backdrop" onClick={() => setConfirm(null)}>
+          <div class="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>Connect {LABEL[confirm]} Calendar?</h3>
+            <p>
+              We’ll read only your <strong>busy times</strong> to shade this calendar so you can compare — they’re never
+              stored or sent to our server. Only connect if you trust this app; it works fine without it, you just won’t
+              see your own busy times.
+            </p>
+            <p class="muted small-text">{LABEL[confirm]} will then show its own sign-in/permission screen.</p>
+            <div class="row">
+              <button type="button" class="primary" onClick={() => { const p = confirm; setConfirm(null); connect(p); }}>
+                Connect {LABEL[confirm]}
+              </button>
+              <button type="button" class="ghost" onClick={() => setConfirm(null)}>Not now</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
