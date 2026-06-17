@@ -73,13 +73,13 @@ export function Create() {
   return (
     <main class="page app">
       <header class="app-head">
-        <p class="app-hint">Paint when you’re free, then share.</p>
-        <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
+        <p class="app-hint">Hold to paint when you’re free, then share.</p>
       </header>
 
       <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} />
 
       {error && <p class="error">{error}</p>}
+      <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
       <button type="button" class="fab" disabled={working} onClick={share}>
         {working ? '…' : 'Share'}
       </button>

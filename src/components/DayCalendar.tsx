@@ -287,12 +287,6 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
           {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
         </div>
       </div>
-
-      <div class="daycal-foot">
-        <span class="muted small-text">
-          {mode === 'readonly' ? 'Swipe for days' : 'Hold to paint · swipe for days'}
-        </span>
-      </div>
     </div>
   );
 }
