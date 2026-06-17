@@ -55,22 +55,36 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const dayStart = days[dayIdx] ?? days[0]!;
   const isToday = dayIdx === 0;
   const weekStart = Math.floor(dayIdx / 7) * 7; // 7-day window shown in the strip
-  // Swipe = move one day (skipping empty days in select mode).
-  const go = (dir: 1 | -1) => {
-    let j = dayIdx + dir;
-    while (j >= 0 && j < days.length && !dayUsable(j)) j += dir;
-    if (j >= 0 && j < days.length) { setDayIdx(j); setSel(null); onSelect?.(null); }
+
+  const [anim, setAnim] = useState(0); // bump to replay the slide animation
+  const dir = useRef<'fwd' | 'back'>('fwd');
+  const swipedAt = useRef(0); // suppress the tap that ends a strip swipe
+  const stripTouch = useRef<{ x: number; y: number } | null>(null);
+
+  const setDay = (j: number) => {
+    if (j < 0 || j >= days.length || j === dayIdx) return;
+    dir.current = j > dayIdx ? 'fwd' : 'back';
+    setDayIdx(j);
+    setSel(null);
+    onSelect?.(null);
+    setAnim((a) => a + 1);
   };
-  // Header ‹ › = jump a week within the month, keeping the weekday.
-  const goWeek = (dir: 1 | -1) => {
-    const ns = weekStart + dir * 7;
+  // Swipe the calendar = move one day (skipping empty days in select mode).
+  const go = (d: 1 | -1) => {
+    let j = dayIdx + d;
+    while (j >= 0 && j < days.length && !dayUsable(j)) j += d;
+    setDay(j);
+  };
+  // Header ‹ › and swiping the date row = jump a week, keeping the weekday.
+  const goWeek = (d: 1 | -1) => {
+    const ns = weekStart + d * 7;
     if (ns < 0 || ns >= days.length) return;
     let target = Math.min(days.length - 1, ns + (dayIdx - weekStart));
     if (mode !== 'paint' && !dayUsable(target)) {
       const u = days.findIndex((_, i) => i >= ns && i < ns + 7 && dayUsable(i));
       if (u >= 0) target = u;
     }
-    setDayIdx(target); setSel(null); onSelect?.(null);
+    setDay(target);
   };
 
   const body = useRef<HTMLDivElement>(null);
@@ -238,7 +252,19 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         <button type="button" class="daycal-nav" onClick={() => goWeek(1)} aria-label="Next week" disabled={weekStart + 7 >= days.length}>›</button>
       </div>
 
-      <div class="daycal-strip">
+      <div
+        class={`daycal-strip slide-${dir.current}`}
+        key={`wk${weekStart}`}
+        onTouchStart={(e) => { const t = e.touches[0]; if (t) stripTouch.current = { x: t.clientX, y: t.clientY }; }}
+        onTouchEnd={(e) => {
+          const s = stripTouch.current; stripTouch.current = null;
+          if (!s) return;
+          const t = e.changedTouches[0];
+          if (!t) return;
+          const dx = t.clientX - s.x, dy = t.clientY - s.y;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { swipedAt.current = Date.now(); goWeek(dx < 0 ? 1 : -1); }
+        }}
+      >
         {days.slice(weekStart, weekStart + 7).map((d, j) => {
           const i = weekStart + j;
           const dd = new Date(d * 60000);
@@ -250,7 +276,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
               type="button"
               class={`daycal-pip ${i === dayIdx ? 'on' : ''} ${!usable ? 'empty' : ''}`}
               disabled={!usable && mode !== 'paint'}
-              onClick={() => { setDayIdx(i); setSel(null); onSelect?.(null); }}
+              onClick={() => { if (Date.now() - swipedAt.current < 300) return; setDay(i); }}
             >
               <span class="pip-wd">{WD.format(dd)}</span>
               <span class="pip-num">{DNUM.format(dd)}</span>
@@ -261,7 +287,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
       </div>
 
       <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-        <div class="daycal-grid" style={{ height: `${GRID_H}px` }}>
+        <div class={`daycal-grid slide-${dir.current}`} key={`d${anim}`} style={{ height: `${GRID_H}px` }}>
           {Array.from({ length: HOURS + 1 }, (_, h) => (
             <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
               <span class="daycal-hrlabel">{h < HOURS ? fmtTime(dayStart + h * 60) : ''}</span>

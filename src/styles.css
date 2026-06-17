@@ -474,7 +474,14 @@ code.url {
 .daycal-nav { min-height: 30px; min-width: 30px; padding: 2px 8px; font-size: 0.95rem; color: var(--muted); opacity: 0.7; }
 .daycal-nav:disabled { opacity: 0.2; }
 
-.daycal-strip { display: flex; gap: 2px; }
+.daycal-strip { display: flex; gap: 2px; touch-action: pan-y; }
+
+/* quick directional slide when changing day/week (Apple Calendar feel) */
+@keyframes daycal-in-fwd { from { opacity: 0.5; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes daycal-in-back { from { opacity: 0.5; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.slide-fwd { animation: daycal-in-fwd 0.18s ease; }
+.slide-back { animation: daycal-in-back 0.18s ease; }
+@media (prefers-reduced-motion: reduce) { .slide-fwd, .slide-back { animation: none; } }
 .daycal-pip {
   flex: 1; min-height: 0; padding: 4px 0 6px; flex-direction: column; gap: 3px; line-height: 1;
   background: none; border: none; position: relative; color: var(--text);
@@ -484,6 +491,7 @@ code.url {
 .pip-num {
   font-size: 0.9rem; font-weight: 600; width: 28px; height: 28px; line-height: 28px;
   text-align: center; border-radius: 50%; margin: 0 auto;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .daycal-pip.on .pip-num { background: var(--accent); color: #08110d; }
 .pip-dot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
