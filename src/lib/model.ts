@@ -42,7 +42,7 @@ export interface AdminEvent {
 }
 
 export const DEFAULTS = { event: 'Meeting', durationMin: 120, stepMin: 30 };
-export const HORIZON_DAYS = 7;
+export const HORIZON_DAYS = 31;
 
 export const nowMin = () => Math.floor(Date.now() / 60000);
 

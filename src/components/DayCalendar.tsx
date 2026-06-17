@@ -4,7 +4,7 @@ import { cellsToWindows, nowMin } from '../lib/model';
 import { fmtTime } from '../lib/time';
 
 const CELL_MIN = 30;
-const PXH = 48; // px per hour (the hours scroll vertically)
+const PXH = 36; // px per hour (the hours scroll vertically)
 const HOURS = 24;
 const GRID_H = HOURS * PXH;
 const LONGPRESS_MS = 320;
@@ -54,10 +54,23 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
 
   const dayStart = days[dayIdx] ?? days[0]!;
   const isToday = dayIdx === 0;
+  const weekStart = Math.floor(dayIdx / 7) * 7; // 7-day window shown in the strip
+  // Swipe = move one day (skipping empty days in select mode).
   const go = (dir: 1 | -1) => {
     let j = dayIdx + dir;
     while (j >= 0 && j < days.length && !dayUsable(j)) j += dir;
     if (j >= 0 && j < days.length) { setDayIdx(j); setSel(null); onSelect?.(null); }
+  };
+  // Header ‹ › = jump a week within the month, keeping the weekday.
+  const goWeek = (dir: 1 | -1) => {
+    const ns = weekStart + dir * 7;
+    if (ns < 0 || ns >= days.length) return;
+    let target = Math.min(days.length - 1, ns + (dayIdx - weekStart));
+    if (mode !== 'paint' && !dayUsable(target)) {
+      const u = days.findIndex((_, i) => i >= ns && i < ns + 7 && dayUsable(i));
+      if (u >= 0) target = u;
+    }
+    setDayIdx(target); setSel(null); onSelect?.(null);
   };
 
   const body = useRef<HTMLDivElement>(null);
@@ -213,13 +226,14 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   return (
     <div class="daycal">
       <div class="daycal-head">
-        <button type="button" class="daycal-nav" onClick={() => go(-1)} aria-label="Previous day" disabled={!days.some((_, i) => i < dayIdx && dayUsable(i))}>‹</button>
+        <button type="button" class="daycal-nav" onClick={() => goWeek(-1)} aria-label="Previous week" disabled={weekStart === 0}>‹</button>
         <div class="daycal-date">{DATE_FULL.format(date)}{isToday ? ' · Today' : ''}</div>
-        <button type="button" class="daycal-nav" onClick={() => go(1)} aria-label="Next day" disabled={!days.some((_, i) => i > dayIdx && dayUsable(i))}>›</button>
+        <button type="button" class="daycal-nav" onClick={() => goWeek(1)} aria-label="Next week" disabled={weekStart + 7 >= days.length}>›</button>
       </div>
 
       <div class="daycal-strip">
-        {days.map((d, i) => {
+        {days.slice(weekStart, weekStart + 7).map((d, j) => {
+          const i = weekStart + j;
           const dd = new Date(d * 60000);
           const usable = dayUsable(i);
           const has = mode === 'paint' ? cellsOnDay(d) > 0 : usable;
@@ -269,11 +283,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
 
       <div class="daycal-foot">
         <span class="muted small-text">
-          {mode === 'paint'
-            ? 'Hold to paint your free time · swipe for days'
-            : mode === 'select'
-              ? 'Hold to mark when you can meet · swipe for days'
-              : 'Swipe for days'}
+          {mode === 'readonly' ? 'Swipe for days' : 'Hold to paint · swipe for days'}
         </span>
       </div>
     </div>

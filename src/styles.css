@@ -470,9 +470,9 @@ code.url {
   user-select: none; -webkit-user-select: none;
 }
 .daycal-body::-webkit-scrollbar { width: 0; }
-.daycal-grid { position: relative; margin-left: 46px; }
+.daycal-grid { position: relative; margin-left: 34px; }
 .daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); pointer-events: none; }
-.daycal-hrlabel { position: absolute; left: -46px; top: -7px; width: 42px; text-align: right; font-size: 0.62rem; color: var(--muted); }
+.daycal-hrlabel { position: absolute; left: -34px; top: -6px; width: 31px; text-align: left; font-size: 0.62rem; color: var(--muted); }
 
 .daycal-free { position: absolute; left: 3px; right: 3px; background: rgba(79, 209, 165, 0.16); border-left: 3px solid var(--accent); border-radius: 7px; }
 .daycal-free.tappable { background: rgba(79, 209, 165, 0.26); }

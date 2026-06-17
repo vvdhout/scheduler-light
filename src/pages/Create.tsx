@@ -73,7 +73,7 @@ export function Create() {
   return (
     <main class="page app">
       <header class="app-head">
-        <p class="app-hint">Paint when you’re free over the next week, then share.</p>
+        <p class="app-hint">Paint when you’re free, then share.</p>
         <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
       </header>
 
