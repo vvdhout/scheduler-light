@@ -32,7 +32,7 @@ declare global {
           initTokenClient(cfg: {
             client_id: string;
             scope: string;
-            callback: (resp: { access_token?: string; error?: string }) => void;
+            callback: (resp: { access_token?: string; expires_in?: number; error?: string }) => void;
             error_callback?: (err: { message?: string }) => void;
           }): GoogleTokenClient;
         };
@@ -57,20 +57,52 @@ const toWin = (startIso: string, endIso: string): Win => [
   Math.ceil(Date.parse(endIso) / 60000),
 ];
 
-/** Pops Google consent (or refreshes silently), queries FreeBusy, returns busy ranges. */
-export async function googleBusy(fromMin: number, toMin: number, opts: { silent?: boolean } = {}): Promise<Win[]> {
+// Google access tokens last ~1h and GIS won't persist them, and silent
+// re-auth (prompt:'none') is unreliable with third-party cookies blocked. So
+// cache the token (with its expiry) in this browser and reuse it across
+// reloads and new pages until it expires — only then do we re-prompt. Scope is
+// read-only free/busy; nothing is sent to our server.
+const GTOKEN_KEY = 'slots.gtoken';
+function cachedGoogleToken(): string | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(GTOKEN_KEY) || 'null') as { token: string; exp: number } | null;
+    return r && r.exp > Date.now() ? r.token : null;
+  } catch { return null; }
+}
+function storeGoogleToken(token: string, expiresInSec: number): void {
+  try { localStorage.setItem(GTOKEN_KEY, JSON.stringify({ token, exp: Date.now() + (expiresInSec - 60) * 1000 })); } catch { /* ignore */ }
+}
+function clearGoogleToken(): void {
+  try { localStorage.removeItem(GTOKEN_KEY); } catch { /* ignore */ }
+}
+
+/** Forget any cached overlay token (called when the user disconnects). */
+export function forgetOverlayTokens(): void {
+  clearGoogleToken();
+}
+
+async function googleAccessToken(silent: boolean): Promise<string> {
+  const cached = cachedGoogleToken();
+  if (cached) return cached;
   await loadScript('https://accounts.google.com/gsi/client');
-  const token = await new Promise<string>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID!,
       scope: 'https://www.googleapis.com/auth/calendar.freebusy',
-      callback: (resp) => (resp.access_token ? resolve(resp.access_token) : reject(new Error(resp.error ?? 'No token'))),
+      callback: (resp) => {
+        if (!resp.access_token) return reject(new Error(resp.error ?? 'No token'));
+        storeGoogleToken(resp.access_token, Number(resp.expires_in) || 3600);
+        resolve(resp.access_token);
+      },
       error_callback: (err) => reject(new Error(err.message ?? 'Google sign-in cancelled')),
     });
     // 'none' = no UI; only works after the user has consented once.
-    client.requestAccessToken({ prompt: opts.silent ? 'none' : '' });
+    client.requestAccessToken({ prompt: silent ? 'none' : '' });
   });
-  const res = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+}
+
+function fetchFreeBusy(token: string, fromMin: number, toMin: number) {
+  return fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -79,6 +111,18 @@ export async function googleBusy(fromMin: number, toMin: number, opts: { silent?
       items: [{ id: 'primary' }],
     }),
   });
+}
+
+/** Returns busy ranges, reusing a cached token when possible. */
+export async function googleBusy(fromMin: number, toMin: number, opts: { silent?: boolean } = {}): Promise<Win[]> {
+  let token = await googleAccessToken(!!opts.silent);
+  let res = await fetchFreeBusy(token, fromMin, toMin);
+  if (res.status === 401) {
+    // Cached token was revoked/expired early — drop it and get a fresh one.
+    clearGoogleToken();
+    token = await googleAccessToken(!!opts.silent);
+    res = await fetchFreeBusy(token, fromMin, toMin);
+  }
   if (!res.ok) throw new Error(`Google Calendar error (${res.status})`);
   const json = (await res.json()) as { calendars?: { primary?: { busy?: { start: string; end: string }[] } } };
   return (json.calendars?.primary?.busy ?? []).map((b) => toWin(b.start, b.end));

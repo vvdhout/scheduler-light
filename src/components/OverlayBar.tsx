@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { loadBusy, type OverlayProvider, overlayProviders } from '../lib/busy';
+import { forgetOverlayTokens, loadBusy, type OverlayProvider, overlayProviders } from '../lib/busy';
 import { overlayPref, setOverlayPref } from '../lib/store';
 import type { Win } from '../lib/model';
 
@@ -65,6 +65,7 @@ export function OverlayBar({ fromMin, toMin, onBusy }: Props) {
   const disconnect = () => {
     setActive(null);
     setOverlayPref(null);
+    forgetOverlayTokens();
     onBusy([]);
   };
 
