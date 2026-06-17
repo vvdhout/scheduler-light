@@ -109,9 +109,16 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     ctx.current.onSelect?.([start, end]);
   };
 
+  // Open scrolled so the current time (the now-line) is in view, with a little
+  // context above it. Re-apply next frame in case the flex layout settles late.
   useLayoutEffect(() => {
     const el = body.current;
-    if (el) el.scrollTop = (isToday ? Math.max(0, new Date().getHours() - 1) : 7) * PXH;
+    if (!el) return;
+    const nowMid = new Date().getHours() * 60 + new Date().getMinutes();
+    const target = isToday ? Math.max(0, (nowMid / 60 - 1.5) * PXH) : 7 * PXH;
+    el.scrollTop = target;
+    const r = requestAnimationFrame(() => { el.scrollTop = target; });
+    return () => cancelAnimationFrame(r);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
