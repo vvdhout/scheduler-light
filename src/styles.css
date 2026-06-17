@@ -18,6 +18,8 @@
 
 html {
   color-scheme: dark;
+  /* allow panning/scrolling but no pinch- or double-tap-zoom anywhere */
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -408,6 +410,7 @@ code.url {
   max-width: 620px;
   padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
   gap: 10px;
+  overflow: hidden; /* only the calendar's hours scroll, not the page */
 }
 .app-head { flex: 0 0 auto; }
 .app-head h1 { margin: 0 0 8px; }
@@ -443,7 +446,14 @@ code.url {
 .pip-dot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .daycal-pip.on .pip-dot { background: transparent; }
 
-.daycal-body { flex: 1 1 auto; min-height: 0; overflow: hidden; position: relative; user-select: none; -webkit-user-select: none; }
+.daycal-body {
+  flex: 1 1 auto; min-height: 0; position: relative;
+  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; /* scroll the hours; paint engages via long-press in JS */
+  overscroll-behavior: contain;
+  user-select: none; -webkit-user-select: none;
+}
+.daycal-body::-webkit-scrollbar { width: 0; }
 .daycal-grid { position: relative; margin-left: 46px; }
 .daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); pointer-events: none; }
 .daycal-hrlabel { position: absolute; left: -46px; top: -7px; width: 42px; text-align: right; font-size: 0.62rem; color: var(--muted); }
