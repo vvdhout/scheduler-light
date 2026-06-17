@@ -226,7 +226,7 @@ code.url {
   flex-shrink: 0;
 }
 .chip-wd { font-size: 0.7rem; opacity: 0.8; }
-.chip-day { font-size: 0.9rem; font-weight: 700; font-family: var(--pixel); }
+.chip-day { font-size: 0.9rem; font-weight: 700; }
 .chip-dot {
   position: absolute;
   top: 6px;
