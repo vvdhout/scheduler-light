@@ -41,24 +41,22 @@ export function Create() {
 
   if (result) {
     const url = `${location.origin}/s/${result}`;
-    const wa = `https://wa.me/?text=${encodeURIComponent(`When are you free? Mark a time: ${url}`)}`;
     return (
       <main class="page">
         <h1>Shared ✓</h1>
         <p class="muted">Send this link. People mark a time that works — no sign-up.</p>
         <code class="url">{url}</code>
         <div class="row">
+          {'share' in navigator && (
+            <button type="button" class="primary" onClick={() => navigator.share({ url })}>Share…</button>
+          )}
           <button
             type="button"
-            class="primary"
+            class="ghost"
             onClick={async () => { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
           >
             {copied ? 'Copied!' : 'Copy link'}
           </button>
-          {'share' in navigator && (
-            <button type="button" class="ghost" onClick={() => navigator.share({ url })}>Share…</button>
-          )}
-          <a class="wa button" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
         </div>
         <div class="row">
           <a class="ghost button" href={`/s/${result}`}>Open my page</a>
