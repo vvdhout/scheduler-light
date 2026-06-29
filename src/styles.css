@@ -396,15 +396,15 @@ code.url {
   margin-top: 16px;
   padding: 14px 16px;
   border-radius: var(--radius);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--fill);
+  border: 1px solid var(--ring);
   color: var(--muted);
   text-decoration: none;
   text-align: center;
   font-size: 0.9rem;
   line-height: 1.45;
 }
-.cta-banner strong { display: block; margin-top: 3px; color: var(--accent); font-weight: 600; }
+.cta-banner strong { display: block; margin-top: 3px; color: var(--highlight); font-weight: 600; }
 .cta-banner:active { opacity: 0.7; }
 
 .notice {
@@ -426,6 +426,8 @@ code.url {
   flex-wrap: wrap;
   margin: 8px 0;
 }
+.cal-buttons a, .cal-buttons button { display: inline-flex; align-items: center; gap: 5px; }
+.cal-ic { flex-shrink: 0; display: block; }
 
 .booking {
   border-top: 1px solid var(--border);

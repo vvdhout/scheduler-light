@@ -140,7 +140,7 @@ export function View({ id }: { id: string }) {
           <h2>Grabbed ✓</h2>
           <p><strong>{claimedTitle}</strong></p>
           <p class="muted">{fmtFull(claimed[0])} – {fmtTime(claimed[1])}</p>
-          <p class="muted">It’s now off the table for everyone else.</p>
+          <p class="muted">Add it to your preferred calendar:</p>
           <CalButtons title={claimedTitle} start={claimed[0]} end={claimed[1]} />
           <button type="button" class="ghost" onClick={() => { setClaimed(null); setSel(null); setName(''); setEventName(''); }}>Back to calendar</button>
         </div>
