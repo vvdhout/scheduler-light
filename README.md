@@ -1,13 +1,13 @@
-# Slots — ultra-light
+# Light Scheduler — ultra-light
 
 A zero-friction way to show when you're free and let people grab a time. No
 accounts, no details, no booking-management overhead — just a tool to visualize
 availability and pick a common slot. (This is the **ultra-light** branch; the
 `main` branch has the fuller version with names, passwords, and an admin page.)
 
-- **Create:** open the app, pick a slot length, and paint when you're free over
-  the next 7 days on an Apple-Calendar-style day view (swipe between days). Tap
-  **Share** — that's it. No name, no event title, no password.
+- **Create:** open the app and paint when you're free over the next month on an
+  Apple-Calendar-style day view (swipe between days). Tap **Share** — that's it.
+  No name, no event title, no password.
 - **Visitor:** opens the link, sees your availability in **their own timezone**,
   and taps a green slot to grab it. No sign-up, no name. Grabbed slots grey out
   for everyone else. Empty days are greyed and auto-skipped.

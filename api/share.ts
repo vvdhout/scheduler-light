@@ -12,32 +12,24 @@ interface Meta {
   description: string;
 }
 
-const SITE = 'Slots';
+const SITE = 'Light Scheduler';
 const DEFAULT_META: Meta = {
-  title: `${SITE} — share your availability with one link`,
-  description: "Share your availability with one link. No accounts; people book a slot shown in their own timezone.",
+  title: `${SITE} — share when you’re free`,
+  description: "Paint when you’re free, share one link, and let people grab a time that works — no accounts, shown in their own timezone.",
 };
 
-function fmtDuration(min: number): string {
-  const h = Math.floor(min / 60), m = min % 60;
-  if (h && m) return `${h}h ${m}m`;
-  if (h) return `${h}h`;
-  return `${m}m`;
-}
-
+// Ultra-light pages are anonymous (no host/event name), so the shared link
+// gets a generic, inviting preview rather than "{event} with {host}".
 function metaFor(record: EventRecord | null): Meta {
-  if (!record) return { title: `Expired link — ${SITE}`, description: 'This scheduling page is no longer available.' };
+  if (!record) return { title: `Expired link — ${SITE}`, description: 'This scheduling link is no longer available.' };
   if (record.enc)
     return {
-      title: `Private scheduling page — ${SITE}`,
-      description: 'Password-protected. Open the link to enter the password and pick a time.',
+      title: `Private page — ${SITE}`,
+      description: 'Password-protected. Open the link to enter the password.',
     };
-  const event = record.event || 'Meeting';
-  const host = record.name || 'someone';
-  const dur = record.durationMin ? `${fmtDuration(record.durationMin)} slots, ` : '';
   return {
-    title: `${event} with ${host} — ${SITE}`,
-    description: `Pick a time that works with ${host} — ${dur}shown in your timezone. No account needed.`,
+    title: `Find a time to meet — ${SITE}`,
+    description: "Someone shared when they’re free — open the link to grab a time that works for you. No sign-up, shown in your timezone.",
   };
 }
 
