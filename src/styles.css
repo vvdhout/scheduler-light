@@ -452,8 +452,8 @@ code.url {
   flex-direction: column;
   height: 100dvh;
   max-width: 620px;
-  padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
-  gap: 10px;
+  padding: calc(8px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom));
+  gap: 8px;
   overflow: hidden; /* only the calendar's hours scroll, not the page */
 }
 .app-head { flex: 0 0 auto; text-align: center; }
