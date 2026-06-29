@@ -43,6 +43,12 @@ export function downloadIcs(title: string, start: number, end: number, details =
     `DTEND:${utcStamp(end)}`,
     `SUMMARY:${title.replace(/[\\;,]/g, (c) => '\\' + c)}`,
     details ? `DESCRIPTION:${details.replace(/[\\;,]/g, (c) => '\\' + c)}` : '',
+    // 30-minute reminder
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Reminder',
+    'TRIGGER:-PT30M',
+    'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');

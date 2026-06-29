@@ -449,8 +449,12 @@ code.url {
 }
 .fab:disabled { opacity: 0.45; }
 
-.grabbed { flex: 0 0 auto; max-height: 22vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.grabbed { flex: 0 0 auto; max-height: 30vh; overflow-y: auto; display: flex; flex-direction: column; }
 .grabbed .row { margin-top: 0; }
+.grabbed-item { padding: 8px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.grabbed-item:first-child { border-top: none; }
+.grabbed-meta { display: flex; flex-direction: column; }
+.modal input { margin-top: 8px; }
 
 /* bottom strip: overlay control sits left, clear of the floating action button */
 .overlay-bar { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-right: 96px; min-height: 36px; }
@@ -525,10 +529,11 @@ code.url {
 
 /* static hint centered over the grid; never intercepts touches; hidden once painted */
 .daycal-hint {
-  position: absolute; inset: 0; z-index: 2;
+  position: absolute; top: 0; bottom: 0; right: 0; left: 34px; /* left offset = hour-label gutter, so it centers over the paintable column */
+  z-index: 2;
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
-  padding: 0 40px; text-align: center;
+  padding: 0 24px; text-align: center;
   color: var(--muted); font-size: 0.95rem; line-height: 1.5;
   animation: daycal-hint-in 0.25s ease;
 }

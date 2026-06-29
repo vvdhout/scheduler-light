@@ -26,8 +26,8 @@ export const createEvent = (body: CreateBody) => call<{ id: string }>('POST', '/
 
 export const getEvent = (id: string) => call<PublicEvent>('GET', `/api/event?id=${encodeURIComponent(id)}`);
 
-export const bookSlot = (id: string, slot: Win, by: string, note: string, gate?: string) =>
-  call<{ ok: true }>('POST', '/api/book', { id, start: slot[0], end: slot[1], by, note, gate });
+export const bookSlot = (id: string, slot: Win, by: string, event: string, gate?: string) =>
+  call<{ ok: true }>('POST', '/api/book', { id, start: slot[0], end: slot[1], by, event, gate });
 
 export const adminGet = (id: string, token: string) =>
   call<AdminEvent>('POST', '/api/admin', { id, token, action: 'get' });

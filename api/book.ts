@@ -14,8 +14,9 @@ export default safe(async function handler(req: VercelRequest, res: VercelRespon
   const s = start as number, e = end as number;
   const nowMin = Math.floor(Date.now() / 60000);
   if (s >= e || e - s > 1440 || s < nowMin - 5) return res.status(400).json({ error: 'Invalid slot' });
-  // Ultra-light flow books anonymously, so a name is optional.
+  // Name and event are optional, kept short.
   const by = isStr(body.by, 0, 80) ? body.by : '';
+  const event = isStr(body.event, 0, 120) ? body.event : '';
   const note = isStr(body.note, 0, 280) ? body.note : '';
 
   const result = await withLock(id, async () => {
@@ -37,7 +38,7 @@ export default safe(async function handler(req: VercelRequest, res: VercelRespon
     }
     if (record.bookings.length >= 100) return { status: 409, error: 'This page is fully booked.' };
 
-    record.bookings.push({ start: s, end: e, by, note, at: Date.now() });
+    record.bookings.push({ start: s, end: e, by, event, note, at: Date.now() });
     if (JSON.stringify(record).length > MAX_RECORD_BYTES) return { status: 413, error: 'Booking too large' };
     await kv.setJson(evKey(id), record, TTL_SEC);
     return { status: 200 };

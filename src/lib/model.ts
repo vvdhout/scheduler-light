@@ -14,6 +14,7 @@ export interface Booking {
   start: number;
   end: number;
   by: string;
+  event?: string; // what it's for, shown as "{event} with {by}"
   note?: string;
   at: number; // epoch ms
 }

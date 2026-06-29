@@ -31,6 +31,9 @@ export function View({ id }: { id: string }) {
   const [blocked, setBlocked] = useState<Win[]>([]);
   const [sel, setSel] = useState<Win | null>(null);
   const [claimed, setClaimed] = useState<Win | null>(null);
+  const [name, setName] = useState('');
+  const [eventName, setEventName] = useState('');
+  const [prompting, setPrompting] = useState(false); // name/event dialog before booking
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -99,12 +102,23 @@ export function View({ id }: { id: string }) {
 
         {upcoming.length > 0 && (
           <div class="grabbed">
-            {upcoming.map((b) => (
-              <div key={`${b.start}:${b.at}`} class="row spread">
-                <span class="small-text">{fmtFull(b.start)} – {fmtTime(b.end)}</span>
-                <button type="button" class="ghost small danger" onClick={() => release(b)}>release</button>
-              </div>
-            ))}
+            {upcoming.map((b) => {
+              const title = b.event?.trim()
+                ? `${b.event.trim()} with ${b.by || 'someone'}`
+                : (b.by ? `Booked by ${b.by}` : 'Booked');
+              return (
+                <div key={`${b.start}:${b.at}`} class="grabbed-item">
+                  <div class="grabbed-meta">
+                    <strong class="small-text">{title}</strong>
+                    <span class="muted small-text">{fmtFull(b.start)} – {fmtTime(b.end)}</span>
+                  </div>
+                  <div class="row">
+                    <CalButtons title={title} start={b.start} end={b.end} />
+                    <button type="button" class="ghost small danger" onClick={() => release(b)}>release</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -119,14 +133,16 @@ export function View({ id }: { id: string }) {
 
   // ---- visitor --------------------------------------------------------------
   if (claimed) {
+    const claimedTitle = eventName.trim() || 'Meeting';
     return (
       <main class="page">
         <div class="card booked-card">
           <h2>Grabbed ✓</h2>
-          <p><strong>{fmtFull(claimed[0])} – {fmtTime(claimed[1])}</strong></p>
+          <p><strong>{claimedTitle}</strong></p>
+          <p class="muted">{fmtFull(claimed[0])} – {fmtTime(claimed[1])}</p>
           <p class="muted">It’s now off the table for everyone else.</p>
-          <CalButtons title="Meeting" start={claimed[0]} end={claimed[1]} />
-          <button type="button" class="ghost" onClick={() => { setClaimed(null); setSel(null); }}>Back to calendar</button>
+          <CalButtons title={claimedTitle} start={claimed[0]} end={claimed[1]} />
+          <button type="button" class="ghost" onClick={() => { setClaimed(null); setSel(null); setName(''); setEventName(''); }}>Back to calendar</button>
         </div>
         <a class="cta-banner" href="/">
           Need to find a time with someone else too?
@@ -140,14 +156,16 @@ export function View({ id }: { id: string }) {
     if (!sel) return;
     setErr('');
     try {
-      await bookSlot(id, sel, '', '');
+      await bookSlot(id, sel, name.trim(), eventName.trim() || 'Meeting');
       setBlocked((b) => [...b, sel]);
       setClaimed(sel);
+      setPrompting(false);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         const fresh = await getEvent(id);
         if (!fresh.enc) setBlocked(fresh.blocked);
         setSel(null);
+        setPrompting(false);
         setErr('That time was just taken — pick another.');
       } else {
         setErr(e instanceof Error ? e.message : 'Could not grab that time');
@@ -159,11 +177,26 @@ export function View({ id }: { id: string }) {
     <main class="page app">
       <DayCalendar days={days} mode="select" windows={segments} booked={blocked} busy={busy} onSelect={setSel} hint="Hold to mark a time that works for you. No sign-up." />
 
-      {err && <p class="error">{err}</p>}
+      {err && !prompting && <p class="error">{err}</p>}
       <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
-      <button type="button" class="fab" disabled={!sel} onClick={grab}>
+      <button type="button" class="fab" disabled={!sel} onClick={() => { setErr(''); setPrompting(true); }}>
         {sel ? `Grab ${fmtTime(sel[0])}–${fmtTime(sel[1])}` : 'Mark a time'}
       </button>
+
+      {prompting && sel && (
+        <div class="modal-backdrop" onClick={() => setPrompting(false)}>
+          <div class="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>Grab {fmtTime(sel[0])}–{fmtTime(sel[1])}</h3>
+            <input placeholder="Your name" value={name} maxLength={80} autofocus onInput={(e) => setName((e.target as HTMLInputElement).value)} />
+            <input placeholder="What’s it for? (e.g. Lunch)" value={eventName} maxLength={120} onInput={(e) => setEventName((e.target as HTMLInputElement).value)} />
+            {err && <p class="error">{err}</p>}
+            <div class="row">
+              <button type="button" class="primary" disabled={!name.trim()} onClick={grab}>Grab it</button>
+              <button type="button" class="ghost" onClick={() => setPrompting(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
