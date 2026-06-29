@@ -9,13 +9,14 @@
   --muted: #9a9ea5;
   --accent: #ececee;        /* highlight (near-white in dark) */
   --on-accent: #15161a;     /* text/icon on an accent fill */
+  --highlight: #6aa0e8;     /* calm blue: painted window, selection, day dots */
   --accent-dim: rgba(255, 255, 255, 0.16);
   --gold: #c9ccd2;
   --danger: #e0726c;        /* reddish: taken / busy / now-line */
   --taken: rgba(224, 114, 108, 0.18);
-  --fill: rgba(255, 255, 255, 0.10);     /* painted availability */
-  --fill-strong: rgba(255, 255, 255, 0.22);
-  --ring: rgba(255, 255, 255, 0.28);
+  --fill: rgba(106, 160, 232, 0.20);     /* painted availability (blue) */
+  --fill-strong: rgba(106, 160, 232, 0.32);
+  --ring: rgba(106, 160, 232, 0.45);
   --radius: 12px;
 }
 
@@ -29,13 +30,14 @@
     --muted: #696e77;
     --accent: #1a1c20;      /* highlight (near-black in light) */
     --on-accent: #ffffff;
+    --highlight: #2f6fd0;
     --accent-dim: rgba(0, 0, 0, 0.14);
     --gold: #585c63;
     --danger: #cf5a55;
     --taken: rgba(207, 90, 85, 0.15);
-    --fill: rgba(0, 0, 0, 0.07);
-    --fill-strong: rgba(0, 0, 0, 0.15);
-    --ring: rgba(0, 0, 0, 0.22);
+    --fill: rgba(47, 111, 208, 0.14);
+    --fill-strong: rgba(47, 111, 208, 0.22);
+    --ring: rgba(47, 111, 208, 0.35);
   }
 }
 
@@ -542,7 +544,7 @@ code.url {
   transition: background 0.15s ease, color 0.15s ease;
 }
 .daycal-pip.on .pip-num { background: var(--accent); color: var(--on-accent); }
-.pip-dot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.pip-dot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--highlight); }
 .daycal-pip.on .pip-dot { background: transparent; }
 
 .daycal-bodywrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
@@ -571,7 +573,7 @@ code.url {
 .daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); pointer-events: none; }
 .daycal-hrlabel { position: absolute; left: -34px; top: -6px; width: 31px; text-align: left; font-size: 0.62rem; color: var(--muted); }
 
-.daycal-free { position: absolute; left: 3px; right: 3px; background: var(--fill); border-left: 3px solid var(--accent); border-radius: 7px; }
+.daycal-free { position: absolute; left: 3px; right: 3px; background: var(--fill); border-left: 3px solid var(--highlight); border-radius: 7px; }
 .daycal-free.tappable { background: var(--fill-strong); }
 .daycal-busy {
   position: absolute; left: 3px; right: 3px; border-radius: 7px; pointer-events: none;
@@ -582,7 +584,7 @@ code.url {
   border-radius: 7px; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none;
 }
 .daycal-taken span { font-size: 0.6rem; color: var(--muted); }
-.daycal-sel { position: absolute; left: 3px; right: 3px; background: var(--accent); opacity: 0.9; border-radius: 7px; box-shadow: 0 0 0 2px var(--ring); }
+.daycal-sel { position: absolute; left: 3px; right: 3px; background: var(--highlight); opacity: 0.9; border-radius: 7px; box-shadow: 0 0 0 2px var(--ring); }
 .daycal-now { position: absolute; left: 0; right: 0; border-top: 2px solid var(--danger); pointer-events: none; }
 .daycal-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
 
