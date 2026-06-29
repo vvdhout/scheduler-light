@@ -361,6 +361,23 @@ code.url {
 .booked-card { text-align: center; }
 .booked-card .cal-buttons { justify-content: center; }
 
+/* gentle nudge to create your own page, shown after grabbing a slot */
+.cta-banner {
+  display: block;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: rgba(79, 209, 165, 0.12);
+  border: 1px solid var(--accent-dim);
+  color: var(--muted);
+  text-decoration: none;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.cta-banner strong { display: block; margin-top: 3px; color: var(--accent); font-weight: 600; }
+.cta-banner:active { opacity: 0.7; }
+
 .notice {
   margin: 12px 0;
   padding: 12px 14px;

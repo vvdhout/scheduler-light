@@ -132,6 +132,10 @@ export function View({ id }: { id: string }) {
           <CalButtons title="Meeting" start={claimed[0]} end={claimed[1]} />
           <button type="button" class="ghost" onClick={() => { setClaimed(null); setSel(null); }}>Back to calendar</button>
         </div>
+        <a class="cta-banner" href="/">
+          Need to find a time with someone else too?
+          <strong>Create your own availability link →</strong>
+        </a>
       </main>
     );
   }
