@@ -25,9 +25,10 @@ interface Props {
   busy?: Win[]; // own-calendar overlay
   booked?: Win[]; // taken ranges
   onSelect?: (sel: Win | null) => void; // select mode: the visitor's painted range
+  hint?: string; // shown centered over the grid until the user paints/selects
 }
 
-export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], booked = [], onSelect }: Props) {
+export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], booked = [], onSelect, hint }: Props) {
   const now = nowMin();
   const wins = useMemo(
     () => (mode === 'paint' ? cellsToWindows(cells ?? new Set(), CELL_MIN) : windows ?? []),
@@ -243,6 +244,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const date = new Date(dayStart * 60000);
   const nowOfDay = new Date().getHours() * 60 + new Date().getMinutes();
   const selOnDay = sel && sel[0] >= dayStart && sel[0] < dayStart + 1440 ? sel : null;
+  // Centered overlay hint until they've painted (paint) or marked a range (select).
+  const showHint = !!hint && (mode === 'paint' ? (cells?.size ?? 0) === 0 : mode === 'select' ? sel === null : false);
 
   return (
     <div class="daycal">
@@ -286,7 +289,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         })}
       </div>
 
-      <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
+      <div class="daycal-bodywrap">
+        <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div class={`daycal-grid slide-${dir.current}`} key={`d${anim}`} style={{ height: `${GRID_H}px` }}>
           {Array.from({ length: HOURS + 1 }, (_, h) => (
             <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
@@ -312,6 +316,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
           })()}
           {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
         </div>
+        </div>
+        {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
       </div>
     </div>
   );

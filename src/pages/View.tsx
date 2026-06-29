@@ -95,11 +95,7 @@ export function View({ id }: { id: string }) {
 
     return (
       <main class="page app">
-        <header class="app-head">
-          <p class="app-hint">Hold to paint your availability — and see what’s grabbed.</p>
-        </header>
-
-        <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} booked={upcoming.map((b): Win => [b.start, b.end])} />
+        <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} booked={upcoming.map((b): Win => [b.start, b.end])} hint="Hold to paint your availability." />
 
         {upcoming.length > 0 && (
           <div class="grabbed">
@@ -161,11 +157,7 @@ export function View({ id }: { id: string }) {
 
   return (
     <main class="page app">
-      <header class="app-head">
-        <p class="app-hint">Hold to mark a time that works for you. No sign-up.</p>
-      </header>
-
-      <DayCalendar days={days} mode="select" windows={segments} booked={blocked} busy={busy} onSelect={setSel} />
+      <DayCalendar days={days} mode="select" windows={segments} booked={blocked} busy={busy} onSelect={setSel} hint="Hold to mark a time that works for you. No sign-up." />
 
       {err && <p class="error">{err}</p>}
       <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />

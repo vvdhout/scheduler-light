@@ -514,6 +514,7 @@ code.url {
 .pip-dot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .daycal-pip.on .pip-dot { background: transparent; }
 
+.daycal-bodywrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
 .daycal-body {
   flex: 1 1 auto; min-height: 0; position: relative;
   overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
@@ -521,6 +522,18 @@ code.url {
   overscroll-behavior: contain;
   user-select: none; -webkit-user-select: none;
 }
+
+/* static hint centered over the grid; never intercepts touches; hidden once painted */
+.daycal-hint {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  padding: 0 40px; text-align: center;
+  color: var(--muted); font-size: 0.95rem; line-height: 1.5;
+  animation: daycal-hint-in 0.25s ease;
+}
+@keyframes daycal-hint-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .daycal-hint { animation: none; } }
 .daycal-body::-webkit-scrollbar { width: 0; }
 .daycal-grid { position: relative; margin-left: 34px; }
 .daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); pointer-events: none; }
