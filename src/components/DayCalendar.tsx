@@ -50,6 +50,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   // Responsive: 1 day (mobile, original), 3 or 7 (desktop).
   const [cols, setCols] = useState(() => (typeof window !== 'undefined' ? colsFor(window.innerWidth) : 1));
   const [viewStart, setViewStart] = useState(0); // desktop: first visible day index
+  const [deskPxh, setDeskPxh] = useState(52); // desktop px/hour; grows to fill tall screens
   useEffect(() => {
     const onResize = () => setCols(colsFor(window.innerWidth));
     window.addEventListener('resize', onResize);
@@ -102,6 +103,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const body = useRef<HTMLDivElement>(null);
   const deskBody = useRef<HTMLDivElement>(null);
   const colwrap = useRef<HTMLDivElement>(null);
+  const deskPxhRef = useRef(52);
+  deskPxhRef.current = deskPxh;
   const lastTouch = useRef(0);
   const mdown = useRef<{ anchor: number; add: boolean; base: Set<number> } | null>(null);
   const mdesk = useRef<{ day: number; anchor: number; add: boolean; base: Set<number> } | null>(null);
@@ -147,7 +150,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const minutesAtY = (clientY: number) => {
     const el = deskBody.current!;
     const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
-    const snapped = Math.floor((y / PXH) * 60 / CELL_MIN) * CELL_MIN;
+    const snapped = Math.floor((y / deskPxh) * 60 / CELL_MIN) * CELL_MIN;
     return Math.min(Math.max(snapped, 0), HOURS * 60 - CELL_MIN);
   };
   const dayAtX = (clientX: number) => {
@@ -160,8 +163,18 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
   const blockFor = (cd: number, s: number, e: number) => {
     const a = Math.max(s - cd, 0), b = Math.min(e - cd, HOURS * 60);
-    return { top: timeToY(a), height: Math.max(3, timeToY(b) - timeToY(a)), hidden: b <= a };
+    return { top: (a / 60) * deskPxh, height: Math.max(3, ((b - a) / 60) * deskPxh), hidden: b <= a };
   };
+  // Desktop hours grow to fill the body height (Google-style), min 52px → scrolls.
+  useLayoutEffect(() => {
+    const el = deskBody.current;
+    if (!el || cols === 1) return;
+    const measure = () => setDeskPxh(Math.max(52, el.clientHeight / HOURS));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cols]);
 
   // Open scrolled so the current time is in view (whichever body is active).
   useLayoutEffect(() => {
@@ -169,7 +182,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     if (!el) return;
     const nowMid = new Date().getHours() * 60 + new Date().getMinutes();
     const atToday = cols === 1 ? isToday : todayVisible;
-    const target = atToday ? Math.max(0, (nowMid / 60 - 1.5) * PXH) : 7 * PXH;
+    const ph = cols === 1 ? PXH : deskPxh;
+    const target = atToday ? Math.max(0, (nowMid / 60 - 1.5) * ph) : 7 * ph;
     el.scrollTop = target;
     const r = requestAnimationFrame(() => { el.scrollTop = target; });
     return () => cancelAnimationFrame(r);
@@ -260,7 +274,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     let g: { sx: number; sy: number; mode: 'idle' | 'scroll' | 'draw'; timer: number; day: number; anchor: number; add: boolean; base: Set<number> } | null = null;
     const minAtY = (cy: number) => {
       const y = cy - el.getBoundingClientRect().top + el.scrollTop;
-      const sn = Math.floor((y / PXH) * 60 / CELL_MIN) * CELL_MIN;
+      const sn = Math.floor((y / deskPxhRef.current) * 60 / CELL_MIN) * CELL_MIN;
       return Math.min(Math.max(sn, 0), HOURS * 60 - CELL_MIN);
     };
     const dayAt = (cx: number) => {
@@ -496,15 +510,15 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
       </div>
 
       <div class="daycal-deskbody" ref={deskBody} onMouseDown={onDeskDown} onMouseMove={onDeskMove} onMouseUp={onDeskUp} onMouseLeave={onDeskUp}>
-        <div class="daycal-deskgrid" style={{ height: `${GRID_H}px` }}>
+        <div class="daycal-deskgrid" style={{ height: `${HOURS * deskPxh}px` }}>
           <div class="daycal-gutter">
             {Array.from({ length: HOURS + 1 }, (_, h) => (
-              <span key={h} class="daycal-glabel" style={{ top: `${h * PXH}px` }}>{h < HOURS ? fmtTime((visibleDays[0] ?? days[0]!) + h * 60) : ''}</span>
+              <span key={h} class="daycal-glabel" style={{ top: `${h * deskPxh}px` }}>{h < HOURS ? fmtTime((visibleDays[0] ?? days[0]!) + h * 60) : ''}</span>
             ))}
           </div>
           <div class="daycal-colwrap" ref={colwrap} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
             {Array.from({ length: HOURS + 1 }, (_, h) => (
-              <div key={`hr${h}`} class="daycal-hr wide" style={{ top: `${h * PXH}px` }} />
+              <div key={`hr${h}`} class="daycal-hr wide" style={{ top: `${h * deskPxh}px` }} />
             ))}
             {visibleDays.map((cd, ci) => {
               const selHere = sel && sel[0] >= cd && sel[0] < cd + 1440 ? sel : null;
@@ -517,7 +531,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
                 </div>
               );
             })}
-            {todayVisible && <div class="daycal-now wide" style={{ top: `${timeToY(nowOfDay)}px` }} />}
+            {todayVisible && <div class="daycal-now wide" style={{ top: `${(nowOfDay / 60) * deskPxh}px` }} />}
           </div>
         </div>
         {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
