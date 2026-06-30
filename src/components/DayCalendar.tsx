@@ -528,10 +528,10 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
                   {wins.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
                   {booked.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>; })}
                   {selHere && (() => { const b = blockFor(cd, selHere[0], selHere[1]); return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })()}
+                  {cd === days[0] && <div class="daycal-now" style={{ top: `${(nowOfDay / 60) * deskPxh}px` }} />}
                 </div>
               );
             })}
-            {todayVisible && <div class="daycal-now wide" style={{ top: `${(nowOfDay / 60) * deskPxh}px` }} />}
           </div>
         </div>
         {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
