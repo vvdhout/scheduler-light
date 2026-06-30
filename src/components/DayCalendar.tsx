@@ -13,6 +13,9 @@ const SWIPE = 45;
 const WD = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const DNUM = new Intl.DateTimeFormat(undefined, { day: 'numeric' });
 const DATE_FULL = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+const RANGE_FMT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+// Desktop shows multiple days side by side; mobile (1) keeps the original view.
+const colsFor = (w: number) => (w >= 1024 ? 7 : w >= 640 ? 3 : 1);
 
 type Mode = 'paint' | 'select' | 'readonly';
 
@@ -44,6 +47,14 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
 
   const [dayIdx, setDayIdx] = useState(0);
   const [sel, setSel] = useState<Win | null>(null);
+  // Responsive: 1 day (mobile, original), 3 or 7 (desktop).
+  const [cols, setCols] = useState(() => (typeof window !== 'undefined' ? colsFor(window.innerWidth) : 1));
+  const [viewStart, setViewStart] = useState(0); // desktop: first visible day index
+  useEffect(() => {
+    const onResize = () => setCols(colsFor(window.innerWidth));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   useEffect(() => {
     if (mode === 'paint') return;
     if (!dayUsable(dayIdx)) {
@@ -89,8 +100,11 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
 
   const body = useRef<HTMLDivElement>(null);
+  const deskBody = useRef<HTMLDivElement>(null);
+  const colwrap = useRef<HTMLDivElement>(null);
   const lastTouch = useRef(0);
   const mdown = useRef<{ anchor: number; add: boolean; base: Set<number> } | null>(null);
+  const mdesk = useRef<{ day: number; anchor: number; add: boolean; base: Set<number> } | null>(null);
 
   const ctx = useRef<{
     mode: Mode; dayStart: number; cells: Set<number>; onChange?: (c: Set<number>) => void;
@@ -124,21 +138,45 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     ctx.current.onSelect?.([start, end]);
   };
 
-  // Open scrolled so the current time (the now-line) is in view, with a little
-  // context above it. Re-apply next frame in case the flex layout settles late.
+  // ----- desktop window + geometry -----
+  const winStart = Math.min(viewStart, Math.max(0, days.length - cols));
+  const visibleDays = days.slice(winStart, winStart + cols);
+  const todayVisible = winStart === 0;
+  const deskRef = useRef<{ cols: number; visibleDays: number[] }>({ cols, visibleDays });
+  deskRef.current = { cols, visibleDays };
+  const minutesAtY = (clientY: number) => {
+    const el = deskBody.current!;
+    const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
+    const snapped = Math.floor((y / PXH) * 60 / CELL_MIN) * CELL_MIN;
+    return Math.min(Math.max(snapped, 0), HOURS * 60 - CELL_MIN);
+  };
+  const dayAtX = (clientX: number) => {
+    const cw = colwrap.current;
+    if (!cw) return visibleDays[0]!;
+    const r = cw.getBoundingClientRect();
+    let i = Math.floor(((clientX - r.left) / r.width) * cols);
+    i = Math.min(Math.max(i, 0), cols - 1);
+    return visibleDays[i] ?? visibleDays[0]!;
+  };
+  const blockFor = (cd: number, s: number, e: number) => {
+    const a = Math.max(s - cd, 0), b = Math.min(e - cd, HOURS * 60);
+    return { top: timeToY(a), height: Math.max(3, timeToY(b) - timeToY(a)), hidden: b <= a };
+  };
+
+  // Open scrolled so the current time is in view (whichever body is active).
   useLayoutEffect(() => {
-    const el = body.current;
+    const el = cols === 1 ? body.current : deskBody.current;
     if (!el) return;
     const nowMid = new Date().getHours() * 60 + new Date().getMinutes();
-    const target = isToday ? Math.max(0, (nowMid / 60 - 1.5) * PXH) : 7 * PXH;
+    const atToday = cols === 1 ? isToday : todayVisible;
+    const target = atToday ? Math.max(0, (nowMid / 60 - 1.5) * PXH) : 7 * PXH;
     el.scrollTop = target;
     const r = requestAnimationFrame(() => { el.scrollTop = target; });
     return () => cancelAnimationFrame(r);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cols]);
 
-  // Touch: vertical drag scrolls, horizontal swipes days, press-and-hold draws
-  // (paints availability or, for visitors, marks a range within a free window).
+  // Mobile touch: vertical drag scrolls, horizontal swipes days, press-and-hold draws.
   useEffect(() => {
     const el = body.current;
     if (!el) return;
@@ -213,9 +251,91 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
       el.removeEventListener('touchend', onEnd);
       el.removeEventListener('touchcancel', onCancel);
     };
-  }, []);
+  }, [cols]);
 
-  // Mouse (desktop): drag draws, click toggles/selects.
+  // Desktop touch: press-and-hold to draw within a column; vertical drag scrolls.
+  useEffect(() => {
+    const el = deskBody.current;
+    if (!el || cols === 1) return;
+    let g: { sx: number; sy: number; mode: 'idle' | 'scroll' | 'draw'; timer: number; day: number; anchor: number; add: boolean; base: Set<number> } | null = null;
+    const minAtY = (cy: number) => {
+      const y = cy - el.getBoundingClientRect().top + el.scrollTop;
+      const sn = Math.floor((y / PXH) * 60 / CELL_MIN) * CELL_MIN;
+      return Math.min(Math.max(sn, 0), HOURS * 60 - CELL_MIN);
+    };
+    const dayAt = (cx: number) => {
+      const cw = colwrap.current;
+      const { cols: c, visibleDays: vd } = deskRef.current;
+      if (!cw) return vd[0]!;
+      const r = cw.getBoundingClientRect();
+      let i = Math.floor(((cx - r.left) / r.width) * c);
+      i = Math.min(Math.max(i, 0), c - 1);
+      return vd[i] ?? vd[0]!;
+    };
+    const startDraw = () => {
+      if (!g) return;
+      g.mode = 'draw';
+      g.day = dayAt(g.sx);
+      g.anchor = g.day + minAtY(g.sy);
+      try { navigator.vibrate?.(10); } catch { /* unsupported */ }
+      if (ctx.current.mode === 'paint') {
+        g.add = !ctx.current.cells.has(g.anchor);
+        g.base = new Set(ctx.current.cells);
+        paintRange(g.anchor, g.anchor, g.add, g.base);
+      } else selectRange(g.anchor, g.anchor);
+    };
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) { g = null; return; }
+      const t = e.touches[0]!;
+      g = { sx: t.clientX, sy: t.clientY, mode: 'idle', timer: 0, day: 0, anchor: 0, add: false, base: new Set() };
+      if (ctx.current.mode !== 'readonly') {
+        const gg = g;
+        gg.timer = window.setTimeout(() => { if (g === gg && g.mode === 'idle') startDraw(); }, LONGPRESS_MS);
+      }
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!g) return;
+      const t = e.touches[0];
+      if (!t) return;
+      if (g.mode === 'idle' && Math.max(Math.abs(t.clientX - g.sx), Math.abs(t.clientY - g.sy)) > JITTER) {
+        clearTimeout(g.timer);
+        g.mode = 'scroll';
+      }
+      if (g.mode === 'draw') {
+        e.preventDefault();
+        const cur = g.day + minAtY(t.clientY);
+        if (ctx.current.mode === 'paint') paintRange(g.anchor, cur, g.add, g.base);
+        else selectRange(g.anchor, cur);
+      }
+    };
+    const onEnd = (e: TouchEvent) => {
+      lastTouch.current = Date.now();
+      if (!g) return;
+      clearTimeout(g.timer);
+      const cur = g;
+      g = null;
+      if (cur.mode === 'idle') {
+        e.preventDefault();
+        const c = dayAt(cur.sx) + minAtY(cur.sy);
+        if (ctx.current.mode === 'paint') {
+          if (c >= ctx.current.now) { const n = new Set(ctx.current.cells); n.has(c) ? n.delete(c) : n.add(c); ctx.current.onChange?.(n); }
+        } else if (ctx.current.mode === 'select') selectRange(c, c);
+      }
+    };
+    const onCancel = () => { if (g) clearTimeout(g.timer); g = null; };
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: false });
+    el.addEventListener('touchcancel', onCancel);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onCancel);
+    };
+  }, [cols]);
+
+  // Mobile mouse (desktop with 1 col): drag draws, click toggles/selects.
   const onMouseDown = (e: MouseEvent) => {
     if (Date.now() - lastTouch.current < 500 || ctx.current.mode === 'readonly') return;
     const c = cellAtClientY(e.clientY);
@@ -236,6 +356,29 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
   const onMouseUp = () => { mdown.current = null; };
 
+  // Desktop mouse: drag draws within the column it started in.
+  const onDeskDown = (e: MouseEvent) => {
+    if (Date.now() - lastTouch.current < 500 || mode === 'readonly') return;
+    const day = dayAtX(e.clientX);
+    const anchor = day + minutesAtY(e.clientY);
+    if (mode === 'paint') {
+      const st = { day, anchor, add: !ctx.current.cells.has(anchor), base: new Set(ctx.current.cells) };
+      mdesk.current = st;
+      if (anchor >= now) paintRange(anchor, anchor, st.add, st.base);
+    } else {
+      mdesk.current = { day, anchor, add: false, base: new Set() };
+      selectRange(anchor, anchor);
+    }
+  };
+  const onDeskMove = (e: MouseEvent) => {
+    const st = mdesk.current;
+    if (!st) return;
+    const cur = st.day + minutesAtY(e.clientY);
+    if (mode === 'paint') paintRange(st.anchor, cur, st.add, st.base);
+    else selectRange(st.anchor, cur);
+  };
+  const onDeskUp = () => { mdesk.current = null; };
+
   const block = (s: number, e: number) => {
     const a = Math.max(s - dayStart, 0), b = Math.min(e - dayStart, HOURS * 60);
     return { top: timeToY(a), height: Math.max(3, timeToY(b) - timeToY(a)), hidden: b <= a };
@@ -247,7 +390,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   // Centered overlay hint until they've painted (paint) or marked a range (select).
   const showHint = !!hint && (mode === 'paint' ? (cells?.size ?? 0) === 0 : mode === 'select' ? sel === null : false);
 
-  return (
+  // ============================ MOBILE (1 day) ============================
+  if (cols === 1) return (
     <div class="daycal">
       <div class="daycal-head">
         <button type="button" class="daycal-nav" onClick={() => goWeek(-1)} aria-label="Previous week" disabled={weekStart === 0}>‹</button>
@@ -316,6 +460,65 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
           })()}
           {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
         </div>
+        </div>
+        {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
+      </div>
+    </div>
+  );
+
+  // ============================ DESKTOP (multi-day) ============================
+  const rangeLabel = visibleDays.length
+    ? `${RANGE_FMT.format(new Date(visibleDays[0]! * 60000))} – ${RANGE_FMT.format(new Date(visibleDays[visibleDays.length - 1]! * 60000))}`
+    : '';
+  return (
+    <div class="daycal desk">
+      <div class="daycal-toolbar">
+        <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.max(0, winStart - cols))} disabled={winStart === 0} aria-label="Previous">‹</button>
+        <button type="button" class="daycal-today" onClick={() => setViewStart(0)} disabled={winStart === 0}>Today</button>
+        <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.min(Math.max(0, days.length - cols), winStart + cols))} disabled={winStart + cols >= days.length} aria-label="Next">›</button>
+        <span class="daycal-range">{rangeLabel}</span>
+      </div>
+
+      <div class="daycal-colhead">
+        <div class="daycal-gutsp" />
+        {visibleDays.map((d, i) => {
+          const dd = new Date(d * 60000);
+          const isT = winStart + i === 0;
+          const has = mode === 'paint' ? cellsOnDay(d) > 0 : dayUsable(winStart + i);
+          return (
+            <div class={`daycal-ch ${isT ? 'today' : ''}`} key={d}>
+              <span class="pip-wd">{WD.format(dd)}</span>
+              <span class="ch-num">{DNUM.format(dd)}</span>
+              {has && <span class="pip-dot" />}
+            </div>
+          );
+        })}
+      </div>
+
+      <div class="daycal-deskbody" ref={deskBody} onMouseDown={onDeskDown} onMouseMove={onDeskMove} onMouseUp={onDeskUp} onMouseLeave={onDeskUp}>
+        <div class="daycal-deskgrid" style={{ height: `${GRID_H}px` }}>
+          <div class="daycal-gutter">
+            {Array.from({ length: HOURS + 1 }, (_, h) => (
+              <span key={h} class="daycal-glabel" style={{ top: `${h * PXH}px` }}>{h < HOURS ? fmtTime((visibleDays[0] ?? days[0]!) + h * 60) : ''}</span>
+            ))}
+          </div>
+          <div class="daycal-colwrap" ref={colwrap} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+            {Array.from({ length: HOURS + 1 }, (_, h) => (
+              <div key={`hr${h}`} class="daycal-hr wide" style={{ top: `${h * PXH}px` }} />
+            ))}
+            {visibleDays.map((cd, ci) => {
+              const selHere = sel && sel[0] >= cd && sel[0] < cd + 1440 ? sel : null;
+              return (
+                <div class="daycal-col" key={cd} style={{ gridColumn: ci + 1 }}>
+                  {busy.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`b${i}`} class="daycal-busy" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
+                  {wins.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
+                  {booked.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>; })}
+                  {selHere && (() => { const b = blockFor(cd, selHere[0], selHere[1]); return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })()}
+                </div>
+              );
+            })}
+            {todayVisible && <div class="daycal-now wide" style={{ top: `${timeToY(nowOfDay)}px` }} />}
+          </div>
         </div>
         {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
       </div>

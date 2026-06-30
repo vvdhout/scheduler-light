@@ -616,4 +616,44 @@ code.url {
 .daycal-now { position: absolute; left: 0; right: 0; border-top: 2px solid var(--danger); pointer-events: none; }
 .daycal-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
 
+/* ===== desktop multi-day (week) view ===== */
+/* Container widens and the action button moves to a top-right toolbar slot.
+   Behind media queries so mobile (<640px) is untouched. */
+@media (min-width: 640px) {
+  .page.app { max-width: 920px; position: relative; padding-left: 24px; padding-right: 24px; }
+  .fab {
+    position: absolute; top: calc(6px + env(safe-area-inset-top)); right: 24px; bottom: auto;
+    min-height: 40px; padding: 0 18px; box-shadow: none; z-index: 30;
+  }
+}
+@media (min-width: 1024px) { .page.app { max-width: 1180px; } }
+
+/* toolbar (date range + nav + Today); right padding reserves room for the .fab action */
+.daycal-toolbar { display: flex; align-items: center; gap: 8px; padding: 0 130px 8px 0; min-height: 40px; }
+.daycal-today { min-height: 30px; padding: 4px 12px; font-size: 0.8rem; background: var(--surface-2); }
+.daycal-today:disabled { opacity: 0.4; }
+.daycal-range { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-left: 8px; }
+
+/* day-of-week column headers */
+.daycal-colhead { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.daycal-gutsp { width: 46px; flex-shrink: 0; }
+.daycal-ch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+.ch-num { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.daycal-ch.today .ch-num, .daycal-ch.today .pip-wd { color: var(--highlight); }
+
+/* scrollable body: shared hour gutter + N day columns */
+.daycal-deskbody {
+  flex: 1 1 auto; min-height: 0; position: relative;
+  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; overscroll-behavior: contain;
+  user-select: none; -webkit-user-select: none;
+}
+.daycal-deskbody::-webkit-scrollbar { width: 0; }
+.daycal-deskgrid { display: flex; position: relative; }
+.daycal-gutter { width: 46px; flex-shrink: 0; position: relative; }
+.daycal-glabel { position: absolute; right: 8px; transform: translateY(-50%); font-size: 0.62rem; color: var(--muted); }
+.daycal-colwrap { flex: 1; position: relative; display: grid; }
+.daycal-col { position: relative; border-left: 1px solid var(--border); }
+.daycal-hr.wide { border-top: 1px solid var(--border); opacity: 0.55; }
+
 .daycal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; }
