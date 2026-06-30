@@ -388,7 +388,33 @@ code.url {
 }
 
 .booked-card { text-align: center; }
-.booked-card .cal-buttons { justify-content: center; }
+.booked-card .cal-buttons { justify-content: center; margin: 0 0 14px; }
+
+/* soft-red attention callout under the Grabbed heading */
+.attn {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--taken);
+  color: var(--danger);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.attn strong { color: var(--danger); }
+
+/* event name + tappable date-time grouped tight; calendar label tight to buttons */
+.bk-title { margin: 0 0 2px; }
+.bk-when {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 0; margin: 0 0 16px; padding: 4px 8px;
+  background: transparent; color: var(--muted); font-size: 0.95rem;
+  border-radius: 8px; cursor: pointer;
+}
+.bk-when:hover { background: var(--surface-2); }
+.bk-when:active { opacity: 0.7; }
+.copy-ic { opacity: 0.65; flex-shrink: 0; }
+.bk-copied { color: var(--highlight); font-size: 0.8rem; }
+.bk-callabel { margin: 0 0 6px; }
 
 /* gentle nudge to create your own page, shown after grabbing a slot */
 .cta-banner {

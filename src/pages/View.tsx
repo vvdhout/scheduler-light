@@ -8,7 +8,7 @@ import {
   type Booking, type Win,
 } from '../lib/model';
 import { ownerToken } from '../lib/store';
-import { fmtFull, fmtTime, localDayStarts } from '../lib/time';
+import { fmtFull, fmtFullEn, fmtTime, fmtTimeEn, localDayStarts } from '../lib/time';
 
 export function View({ id }: { id: string }) {
   const token = ownerToken(id);
@@ -34,6 +34,7 @@ export function View({ id }: { id: string }) {
   const [name, setName] = useState('');
   const [eventName, setEventName] = useState('');
   const [prompting, setPrompting] = useState(false); // name/event dialog before booking
+  const [copiedWhen, setCopiedWhen] = useState(false);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -134,13 +135,24 @@ export function View({ id }: { id: string }) {
   // ---- visitor --------------------------------------------------------------
   if (claimed) {
     const claimedTitle = eventName.trim() || 'Meeting';
+    const when = `${fmtFullEn(claimed[0])} – ${fmtTimeEn(claimed[1])}`;
+    const copyWhen = async () => {
+      try { await navigator.clipboard.writeText(`${claimedTitle} — ${when}`); setCopiedWhen(true); setTimeout(() => setCopiedWhen(false), 1500); } catch { /* ignore */ }
+    };
     return (
       <main class="page">
         <div class="card booked-card">
           <h2>Grabbed ✓</h2>
-          <p><strong>{claimedTitle}</strong></p>
-          <p class="muted">{fmtFull(claimed[0])} – {fmtTime(claimed[1])}</p>
-          <p class="muted">Add it to your preferred calendar:</p>
+          <p class="attn"><strong>Important:</strong> let the other person know the slot you booked — they aren’t notified of it.</p>
+          <p class="bk-title"><strong>{claimedTitle}</strong></p>
+          <button type="button" class="bk-when" onClick={copyWhen} title="Tap to copy">
+            <span>{when}</span>
+            <svg class="copy-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+            </svg>
+            {copiedWhen && <span class="bk-copied">Copied!</span>}
+          </button>
+          <p class="muted bk-callabel">Add it to your preferred calendar:</p>
           <CalButtons title={claimedTitle} start={claimed[0]} end={claimed[1]} />
           <button type="button" class="ghost" onClick={() => { setClaimed(null); setSel(null); setName(''); setEventName(''); }}>Back to calendar</button>
         </div>

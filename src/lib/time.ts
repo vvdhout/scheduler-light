@@ -15,6 +15,15 @@ export const fmtDay = (min: number) => dayFmt.format(new Date(min * 60000));
 /** "Tue, Jun 16, 14:00 (CEST)" style stamp for copy-to-Discord messages. */
 export const fmtFull = (min: number) => fullFmt.format(new Date(min * 60000));
 
+// English month/weekday names (still the viewer's local timezone) — used where
+// we want a language-stable label, e.g. the slot you copy to send someone.
+const fullFmtEn = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
+});
+const timeFmtEn = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+export const fmtFullEn = (min: number) => fullFmtEn.format(new Date(min * 60000));
+export const fmtTimeEn = (min: number) => timeFmtEn.format(new Date(min * 60000));
+
 /** Local-midnight epoch minutes for today + the next `days - 1` days. */
 export function localDayStarts(days: number): number[] {
   const out: number[] = [];
