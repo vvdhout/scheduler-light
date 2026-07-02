@@ -1,44 +1,46 @@
 :root {
-  /* Minimal grayscale base; colour only as a sparing highlight, plus reddish
-     for taken/busy/now. Light/dark follow the OS via prefers-color-scheme. */
+  /* Light is the DEFAULT. A small script (index.html) sets data-theme="dark"
+     when the OS prefers dark OR it's nighttime; otherwise "light". Minimal
+     grayscale base; colour only as a sparing highlight, plus reddish for
+     taken/busy/now. */
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f3f4f6;
+  --surface-2: #e8eaed;
+  --border: #d8dbe0;
+  --text: #1a1c20;
+  --muted: #696e77;
+  --accent: #1a1c20;        /* highlight (near-black in light) */
+  --on-accent: #ffffff;
+  --highlight: #2f6fd0;     /* calm blue: painted window, selection, day dots */
+  --accent-dim: rgba(0, 0, 0, 0.14);
+  --gold: #585c63;
+  --danger: #cf5a55;        /* reddish: taken / busy / now-line */
+  --taken: rgba(207, 90, 85, 0.15);
+  --fill: rgba(47, 111, 208, 0.14);
+  --fill-strong: rgba(47, 111, 208, 0.22);
+  --ring: rgba(47, 111, 208, 0.35);
+  --radius: 12px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0f1012;
   --surface: #17181b;
   --surface-2: #202226;
   --border: #2c2f35;
   --text: #e9eaec;
   --muted: #9a9ea5;
-  --accent: #ececee;        /* highlight (near-white in dark) */
-  --on-accent: #15161a;     /* text/icon on an accent fill */
-  --highlight: #6aa0e8;     /* calm blue: painted window, selection, day dots */
+  --accent: #ececee;        /* near-white highlight in dark */
+  --on-accent: #15161a;
+  --highlight: #6aa0e8;
   --accent-dim: rgba(255, 255, 255, 0.16);
   --gold: #c9ccd2;
-  --danger: #e0726c;        /* reddish: taken / busy / now-line */
+  --danger: #e0726c;
   --taken: rgba(224, 114, 108, 0.18);
-  --fill: rgba(106, 160, 232, 0.20);     /* painted availability (blue) */
+  --fill: rgba(106, 160, 232, 0.20);
   --fill-strong: rgba(106, 160, 232, 0.32);
   --ring: rgba(106, 160, 232, 0.45);
-  --radius: 12px;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #ffffff;
-    --surface: #f3f4f6;
-    --surface-2: #e8eaed;
-    --border: #d8dbe0;
-    --text: #1a1c20;
-    --muted: #696e77;
-    --accent: #1a1c20;      /* highlight (near-black in light) */
-    --on-accent: #ffffff;
-    --highlight: #2f6fd0;
-    --accent-dim: rgba(0, 0, 0, 0.14);
-    --gold: #585c63;
-    --danger: #cf5a55;
-    --taken: rgba(207, 90, 85, 0.15);
-    --fill: rgba(47, 111, 208, 0.14);
-    --fill-strong: rgba(47, 111, 208, 0.22);
-    --ring: rgba(47, 111, 208, 0.35);
-  }
 }
 
 * {
@@ -46,7 +48,6 @@
 }
 
 html {
-  color-scheme: light dark;
   /* allow panning/scrolling but no pinch- or double-tap-zoom anywhere */
   touch-action: pan-x pan-y;
 }

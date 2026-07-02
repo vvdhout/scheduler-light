@@ -6,6 +6,24 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1012" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="color-scheme" content="light dark" />
+    <script>
+      /* Default to light; use dark when the OS prefers dark OR it's night
+         (before ~7am / after ~7pm local). Runs before paint to avoid a flash,
+         and re-checks when the OS theme changes or the tab is refocused. */
+      (function () {
+        function apply() {
+          try {
+            var sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+            var h = new Date().getHours();
+            var night = h >= 19 || h < 7;
+            document.documentElement.setAttribute('data-theme', (sysDark || night) ? 'dark' : 'light');
+          } catch (e) {}
+        }
+        apply();
+        try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); } catch (e) {}
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) apply(); });
+      })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='24' rx='6' fill='%2316181d'/%3E%3Crect x='3' y='5' width='26' height='7' rx='4' fill='%234fd1a5'/%3E%3Crect x='8' y='17' width='7' height='7' rx='2' fill='%234fd1a5'/%3E%3C/svg%3E" />
     <!--META-->
     <title>Light Scheduler — share when you’re free</title>
