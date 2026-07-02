@@ -37,6 +37,11 @@ interface KV {
   del(key: string): Promise<void>;
   setNx(key: string, exSec: number): Promise<boolean>;
   incrWithTtl(key: string, exSec: number): Promise<number>;
+  // metrics
+  incr(key: string, exSec?: number): Promise<number>;
+  pfadd(key: string, member: string, exSec?: number): Promise<void>;
+  pfcount(key: string): Promise<number>;
+  getNum(key: string): Promise<number>;
 }
 
 function redisKv(): KV | null {
@@ -64,12 +69,24 @@ function redisKv(): KV | null {
       if (n === 1) await redis.expire(key, exSec);
       return n;
     },
+    incr: async (key, exSec) => {
+      const n = await redis.incr(key);
+      if (exSec && n === 1) await redis.expire(key, exSec);
+      return n;
+    },
+    pfadd: async (key, member, exSec) => {
+      await redis.pfadd(key, member);
+      if (exSec) await redis.expire(key, exSec);
+    },
+    pfcount: async (key) => await redis.pfcount(key),
+    getNum: async (key) => { const v = await redis.get<number | string>(key); return v == null ? 0 : Number(v); },
   };
 }
 
 function memoryKv(): KV {
-  const g = globalThis as { __memKv?: Map<string, { v: string; exp: number }> };
+  const g = globalThis as { __memKv?: Map<string, { v: string; exp: number }>; __memHll?: Map<string, Set<string>> };
   const map = (g.__memKv ??= new Map());
+  const hll = (g.__memHll ??= new Map<string, Set<string>>());
   const live = (key: string) => {
     const e = map.get(key);
     if (!e) return null;
@@ -101,10 +118,44 @@ function memoryKv(): KV {
       map.set(key, { v: String(n), exp: e ? e.exp : Date.now() + exSec * 1000 });
       return n;
     },
+    incr: async (key, exSec) => {
+      const e = live(key);
+      const n = e ? Number(e.v) + 1 : 1;
+      map.set(key, { v: String(n), exp: e ? e.exp : (exSec ? Date.now() + exSec * 1000 : Infinity) });
+      return n;
+    },
+    pfadd: async (key, member) => {
+      let s = hll.get(key);
+      if (!s) { s = new Set(); hll.set(key, s); }
+      s.add(member);
+    },
+    pfcount: async (key) => hll.get(key)?.size ?? 0,
+    getNum: async (key) => { const e = live(key); return e ? Number(e.v) : 0; },
   };
 }
 
 export const kv: KV = redisKv() ?? memoryKv();
+
+// ---------------------------------------------------------------------------
+// Anonymous, self-hosted metrics (no PII). Counters + daily buckets; HLL for
+// unique visitors. All best-effort — a metrics failure never breaks a request.
+// ---------------------------------------------------------------------------
+export const todayStr = () => new Date().toISOString().slice(0, 10);
+const METRIC_TTL = 100 * 24 * 3600; // daily buckets self-expire
+
+export async function metric(base: string): Promise<void> {
+  try {
+    await kv.incr(base);
+    await kv.incr(`${base}:${todayStr()}`, METRIC_TTL);
+  } catch (e) { console.error('metric', base, e); }
+}
+
+export async function uniqueVisit(cid: string): Promise<void> {
+  try {
+    await kv.pfadd('m:uv', cid);
+    await kv.pfadd(`m:uv:${todayStr()}`, cid, METRIC_TTL);
+  } catch (e) { console.error('uv', e); }
+}
 
 /** Diagnostics: which storage env vars are present (names only) and whether we're on Redis. */
 export function storageInfo() {

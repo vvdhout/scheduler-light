@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
-  evKey, genId, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, rateLimit, safe, validateCore,
+  evKey, genId, isB64, isHex64, kv, MAX_RECORD_BYTES, methodIs, metric, rateLimit, safe, validateCore,
   type EventRecord,
 } from './_lib.js';
 
@@ -39,5 +39,6 @@ export default safe(async function handler(req: VercelRequest, res: VercelRespon
 
   const id = genId();
   await kv.setJson(evKey(id), record, 30 * 24 * 3600);
+  await metric('m:shared');
   return res.status(200).json({ id });
 });

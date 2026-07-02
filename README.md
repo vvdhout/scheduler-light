@@ -54,6 +54,19 @@ npx vercel dev   # runs frontend + /api functions together
 
 (`npm run dev` runs the frontend alone; API calls will 404 without `vercel dev`.)
 
+## Metrics (optional, self-hosted)
+
+Anonymous, event-based counters kept in the same Upstash Redis — no third-party
+script, no cookies, no PII. Tracked: unique visitors (HyperLogLog over a random
+per-device id), homepage opens, links shared, links opened by potential bookers
+(owner self-views excluded), slots booked, plus two conversions (homepage→shared,
+link-open→booked).
+
+- Set a `STATS_KEY` env var in Vercel to unlock the dashboard.
+- View at **`/stats#YOUR-KEY`** (the key stays in the URL fragment and is passed to
+  `/api/stats`; the endpoint 404s without the correct key). Daily buckets self-expire
+  after ~100 days via Redis TTL.
+
 ## Privacy model
 
 - Stored per page: creator name, event name, duration, availability windows, bookings (name + optional note), all keyed by an unguessable 22-char ID. Nothing else; no IPs beyond transient rate-limit counters.
