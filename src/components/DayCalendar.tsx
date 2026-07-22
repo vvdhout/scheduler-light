@@ -453,6 +453,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
       <div class="daycal-bodywrap">
         <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div class={`daycal-grid slide-${dir.current}`} key={`d${anim}`} style={{ height: `${GRID_H}px` }}>
+          {isToday && <div class="daycal-past" style={{ height: `${timeToY(nowOfDay)}px` }} />}
           {Array.from({ length: HOURS + 1 }, (_, h) => (
             <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
               <span class="daycal-hrlabel">{h < HOURS ? fmtTime(dayStart + h * 60) : ''}</span>
@@ -535,6 +536,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
               const selHere = sel && sel[0] >= cd && sel[0] < cd + 1440 ? sel : null;
               return (
                 <div class="daycal-col" key={cd} style={{ gridColumn: ci + 1 }}>
+                  {cd === days[0] && <div class="daycal-past" style={{ height: `${(nowOfDay / 60) * deskPxh}px` }} />}
                   {busy.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`b${i}`} class="daycal-busy" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
                   {wins.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
                   {booked.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>; })}

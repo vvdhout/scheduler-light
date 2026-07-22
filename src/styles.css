@@ -585,19 +585,19 @@ code.url {
 .daycal-title { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); line-height: 1.2; }
 
 /* create-page ("titled") header: title left, date right, no week arrows */
-.daycal.titled .daycal-head { align-items: baseline; padding-top: 18px; margin-bottom: 12px; }
+.daycal.titled .daycal-head { align-items: baseline; padding-top: 12px; margin-bottom: 12px; }
 .daycal.titled .daycal-title { font-size: 1.45rem; letter-spacing: normal; }
 .daycal.titled .daycal-date { flex: 0 0 auto; text-align: right; }
 
 /* airier day strip: taller pills with more space around weekday / number / dot */
 .daycal.titled .daycal-strip { gap: 4px; }
 .daycal.titled .daycal-pip { padding: 12px 0 16px; gap: 8px; }
-.daycal.titled .pip-wd { font-size: 0.64rem; }
-.daycal.titled .pip-num { width: auto; height: auto; line-height: 1.1; font-size: 1.05rem; }
+.daycal.titled .pip-wd { font-size: 0.62rem; }
+.daycal.titled .pip-num { width: auto; height: auto; line-height: 1.1; font-size: 0.95rem; }
 .daycal.titled .pip-dot { bottom: 7px; width: 5px; height: 5px; }
 
-/* selected day: a soft, tall rounded highlight, dot still visible */
-.daycal.titled .daycal-pip.on { background: var(--fill); border-radius: 18px; }
+/* selected day: a soft rounded highlight, dot still visible */
+.daycal.titled .daycal-pip.on { background: var(--fill); border-radius: 12px; }
 .daycal.titled .daycal-pip.on .pip-num { background: transparent; color: var(--text); }
 .daycal.titled .daycal-pip.on .pip-dot { background: var(--highlight); }
 
@@ -661,6 +661,9 @@ code.url {
 }
 .daycal-taken span { font-size: 0.6rem; color: var(--muted); }
 .daycal-sel { position: absolute; left: 3px; right: 3px; background: var(--highlight); opacity: 0.9; border-radius: 7px; box-shadow: 0 0 0 2px var(--ring); }
+/* today's past (unpaintable) hours: a faint grey wash up to the now-line */
+.daycal-past { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; }
+.daycal.titled .daycal-past { background: rgba(120, 123, 132, 0.11); }
 .daycal-now { position: absolute; left: 0; right: 0; border-top: 2px solid var(--danger); pointer-events: none; }
 .daycal-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
 
