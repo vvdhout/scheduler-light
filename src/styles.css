@@ -695,14 +695,15 @@ code.url {
 
 /* toolbar (date range + nav + Today); right padding reserves room for the .fab action */
 .daycal-toolbar { display: flex; align-items: center; gap: 10px; padding: 0 140px 10px 0; min-height: 44px; }
-/* create page: title pinned left, nav/Today/range centered (action button is bottom-right) */
-.daycal.titled .daycal-topbar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; }
-.daycal.titled .daycal-topbar .daycal-title { position: absolute; left: 0; font-size: 1.3rem; }
-.daycal.titled .daycal-toolbar { padding: 0 0 10px; justify-content: center; }
+/* create page: title left, the Today / ‹ range › segment pinned top-right
+   (action button is bottom-right) */
+.daycal.titled .daycal-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; }
+.daycal.titled .daycal-topbar .daycal-title { font-size: 1.3rem; }
+.daycal.titled .daycal-toolbar { padding: 0 0 10px; justify-content: flex-end; }
 .daycal-toolbar .daycal-nav { font-size: 1.25rem; min-width: 34px; min-height: 34px; }
 .daycal-today { min-height: 34px; padding: 5px 14px; font-size: 0.9rem; background: var(--surface-2); }
 .daycal-today:disabled { opacity: 0.4; }
-.daycal-range { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-left: 10px; }
+.daycal-range { font-size: 1.05rem; font-weight: 600; color: var(--text); }
 
 /* day-of-week column headers */
 .daycal-colhead { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); padding-bottom: 8px; }

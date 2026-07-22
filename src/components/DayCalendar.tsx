@@ -490,10 +490,10 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     : '';
   const toolbar = (
     <div class="daycal-toolbar">
-      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.max(0, winStart - cols))} disabled={winStart === 0} aria-label="Previous">‹</button>
       <button type="button" class="daycal-today" onClick={() => setViewStart(0)} disabled={winStart === 0}>Today</button>
-      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.min(Math.max(0, days.length - cols), winStart + cols))} disabled={winStart + cols >= days.length} aria-label="Next">›</button>
+      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.max(0, winStart - cols))} disabled={winStart === 0} aria-label="Previous week">‹</button>
       <span class="daycal-range">{rangeLabel}</span>
+      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.min(Math.max(0, days.length - cols), winStart + cols))} disabled={winStart + cols >= days.length} aria-label="Next week">›</button>
     </div>
   );
   return (
