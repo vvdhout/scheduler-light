@@ -21,9 +21,6 @@
   --fill-strong: rgba(47, 111, 208, 0.22);
   --ring: rgba(47, 111, 208, 0.35);
   --radius: 12px;
-  /* soft rounded display face for headings (SF Rounded on Apple; falls back to
-     the system sans so it always harmonises with the body text). */
-  --display: ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', 'Quicksand', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 :root[data-theme="dark"] {
@@ -79,8 +76,8 @@ h1, h2, h3 {
   line-height: 1.25;
   letter-spacing: -0.01em;
 }
-/* display headings use the serif; small section labels (h3) stay sans */
-h1, h2 { font-family: var(--display); letter-spacing: -0.01em; }
+/* headings use the body sans, just heavier */
+h1, h2 { font-weight: 700; }
 
 h1 { font-size: 1.4rem; margin: 0 0 8px; }
 h2 { font-size: 1.2rem; margin: 0 0 8px; }
