@@ -40,7 +40,7 @@ interface KV {
   // metrics
   incr(key: string, exSec?: number): Promise<number>;
   pfadd(key: string, member: string, exSec?: number): Promise<void>;
-  pfcount(key: string): Promise<number>;
+  pfcount(...keys: string[]): Promise<number>;
   getNum(key: string): Promise<number>;
 }
 
@@ -78,7 +78,7 @@ function redisKv(): KV | null {
       await redis.pfadd(key, member);
       if (exSec) await redis.expire(key, exSec);
     },
-    pfcount: async (key) => await redis.pfcount(key),
+    pfcount: async (...keys) => (keys.length ? await redis.pfcount(...(keys as [string, ...string[]])) : 0),
     getNum: async (key) => { const v = await redis.get<number | string>(key); return v == null ? 0 : Number(v); },
   };
 }
@@ -129,7 +129,12 @@ function memoryKv(): KV {
       if (!s) { s = new Set(); hll.set(key, s); }
       s.add(member);
     },
-    pfcount: async (key) => hll.get(key)?.size ?? 0,
+    pfcount: async (...keys) => {
+      if (keys.length === 1) return hll.get(keys[0]!)?.size ?? 0;
+      const u = new Set<string>();
+      for (const k of keys) { const s = hll.get(k); if (s) for (const m of s) u.add(m); }
+      return u.size;
+    },
     getNum: async (key) => { const e = live(key); return e ? Number(e.v) : 0; },
   };
 }

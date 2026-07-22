@@ -66,6 +66,9 @@ link-open→booked).
 - View at **`/stats#YOUR-KEY`** (the key stays in the URL fragment and is passed to
   `/api/stats`; the endpoint 404s without the correct key). Daily buckets self-expire
   after ~100 days via Redis TTL.
+- Filter totals & conversions by **All time / last 30 days / last 7 days**. Windowed
+  visitor counts merge the daily HyperLogLogs (`PFCOUNT` union), so a returning
+  visitor is still counted once across the range.
 
 ## Privacy model
 

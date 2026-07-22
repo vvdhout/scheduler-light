@@ -222,6 +222,7 @@ code.url {
 
 /* ---- chips (days, durations) ---- */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips.filter { margin: 12px 0 4px; }
 
 .chip {
   min-height: 40px;
