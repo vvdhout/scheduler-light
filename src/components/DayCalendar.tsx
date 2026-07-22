@@ -29,9 +29,10 @@ interface Props {
   booked?: Win[]; // taken ranges
   onSelect?: (sel: Win | null) => void; // select mode: the visitor's painted range
   hint?: string; // shown centered over the grid until the user paints/selects
+  title?: string; // when set (create page): shows a page title and the "titled" header layout
 }
 
-export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], booked = [], onSelect, hint }: Props) {
+export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], booked = [], onSelect, hint, title }: Props) {
   const now = nowMin();
   const wins = useMemo(
     () => (mode === 'paint' ? cellsToWindows(cells ?? new Set(), CELL_MIN) : windows ?? []),
@@ -406,11 +407,13 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
 
   // ============================ MOBILE (1 day) ============================
   if (cols === 1) return (
-    <div class="daycal">
+    <div class={`daycal${title ? ' titled' : ''}`}>
       <div class="daycal-head">
-        <button type="button" class="daycal-nav" onClick={() => goWeek(-1)} aria-label="Previous week" disabled={weekStart === 0}>‹</button>
+        {title
+          ? <h1 class="daycal-title">{title}</h1>
+          : <button type="button" class="daycal-nav" onClick={() => goWeek(-1)} aria-label="Previous week" disabled={weekStart === 0}>‹</button>}
         <div class="daycal-date">{DATE_FULL.format(date)}{isToday ? ' · Today' : ''}</div>
-        <button type="button" class="daycal-nav" onClick={() => goWeek(1)} aria-label="Next week" disabled={weekStart + 7 >= days.length}>›</button>
+        {!title && <button type="button" class="daycal-nav" onClick={() => goWeek(1)} aria-label="Next week" disabled={weekStart + 7 >= days.length}>›</button>}
       </div>
 
       <div
@@ -484,14 +487,22 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const rangeLabel = visibleDays.length
     ? `${RANGE_FMT.format(new Date(visibleDays[0]! * 60000))} – ${RANGE_FMT.format(new Date(visibleDays[visibleDays.length - 1]! * 60000))}`
     : '';
+  const toolbar = (
+    <div class="daycal-toolbar">
+      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.max(0, winStart - cols))} disabled={winStart === 0} aria-label="Previous">‹</button>
+      <button type="button" class="daycal-today" onClick={() => setViewStart(0)} disabled={winStart === 0}>Today</button>
+      <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.min(Math.max(0, days.length - cols), winStart + cols))} disabled={winStart + cols >= days.length} aria-label="Next">›</button>
+      <span class="daycal-range">{rangeLabel}</span>
+    </div>
+  );
   return (
-    <div class="daycal desk">
-      <div class="daycal-toolbar">
-        <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.max(0, winStart - cols))} disabled={winStart === 0} aria-label="Previous">‹</button>
-        <button type="button" class="daycal-today" onClick={() => setViewStart(0)} disabled={winStart === 0}>Today</button>
-        <button type="button" class="daycal-nav" onClick={() => setViewStart(Math.min(Math.max(0, days.length - cols), winStart + cols))} disabled={winStart + cols >= days.length} aria-label="Next">›</button>
-        <span class="daycal-range">{rangeLabel}</span>
-      </div>
+    <div class={`daycal desk${title ? ' titled' : ''}`}>
+      {title ? (
+        <div class="daycal-topbar">
+          <h1 class="daycal-title">{title}</h1>
+          {toolbar}
+        </div>
+      ) : toolbar}
 
       <div class="daycal-colhead">
         <div class="daycal-gutsp" />
