@@ -141,6 +141,14 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     ctx.current.setSel([start, end]);
     ctx.current.onSelect?.([start, end]);
   };
+  // Show a clear-✕ on a painted block once it spans this many contiguous cells.
+  const REMOVE_MIN_CELLS = 3;
+  const onRemoveBtn = (target: EventTarget | null) => !!(target as HTMLElement)?.closest?.('.daycal-remove');
+  const removeArea = (s: number, e: number) => {
+    const next = new Set(ctx.current.cells);
+    for (let c = s; c < e; c += CELL_MIN) next.delete(c);
+    ctx.current.onChange?.(next);
+  };
 
   // ----- desktop window + geometry -----
   const winStart = Math.min(viewStart, Math.max(0, days.length - cols));
@@ -218,6 +226,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
 
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) { g = null; return; }
+      if (onRemoveBtn(e.target)) { g = null; return; } // let the ✕ handle its own tap
       const t = e.touches[0]!;
       g = { sx: t.clientX, sy: t.clientY, mode: 'idle', dx: 0, timer: 0, anchor: 0, add: false, base: new Set() };
       if (ctx.current.mode !== 'readonly') {
@@ -301,6 +310,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     };
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) { g = null; return; }
+      if (onRemoveBtn(e.target)) { g = null; return; } // let the ✕ handle its own tap
       const t = e.touches[0]!;
       g = { sx: t.clientX, sy: t.clientY, mode: 'idle', timer: 0, day: 0, anchor: 0, add: false, base: new Set() };
       if (ctx.current.mode !== 'readonly') {
@@ -353,6 +363,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   // Mobile mouse (desktop with 1 col): drag draws, click toggles/selects.
   const onMouseDown = (e: MouseEvent) => {
     if (Date.now() - lastTouch.current < 500 || ctx.current.mode === 'readonly') return;
+    if (onRemoveBtn(e.target)) return; // let the ✕ handle its own click
     const c = cellAtClientY(e.clientY);
     if (ctx.current.mode === 'paint') {
       const st = { anchor: c, add: !ctx.current.cells.has(c), base: new Set(ctx.current.cells) };
@@ -374,6 +385,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   // Desktop mouse: drag draws within the column it started in.
   const onDeskDown = (e: MouseEvent) => {
     if (Date.now() - lastTouch.current < 500 || mode === 'readonly') return;
+    if (onRemoveBtn(e.target)) return; // let the ✕ handle its own click
     const day = dayAtX(e.clientX);
     const anchor = day + minutesAtY(e.clientY);
     if (mode === 'paint') {
@@ -466,7 +478,13 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
           })}
           {wins.map(([s, e], i) => {
             const b = block(s, e);
-            return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
+            if (b.hidden) return null;
+            const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
+            return (
+              <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
+                {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
+              </div>
+            );
           })}
           {booked.map(([s, e], i) => {
             const b = block(s, e);
@@ -521,6 +539,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         })}
       </div>
 
+      <div class="daycal-deskbodywrap">
       <div class="daycal-deskbody" ref={deskBody} onMouseDown={onDeskDown} onMouseMove={onDeskMove} onMouseUp={onDeskUp} onMouseLeave={onDeskUp}>
         <div class="daycal-deskgrid" style={{ height: `${HOURS * deskPxh}px` }}>
           <div class="daycal-gutter">
@@ -538,7 +557,16 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
                 <div class="daycal-col" key={cd} style={{ gridColumn: ci + 1 }}>
                   {cd === days[0] && <div class="daycal-past" style={{ height: `${(nowOfDay / 60) * deskPxh}px` }} />}
                   {busy.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`b${i}`} class="daycal-busy" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
-                  {wins.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
+                  {wins.map(([s, e], i) => {
+                    const b = blockFor(cd, s, e);
+                    if (b.hidden) return null;
+                    const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
+                    return (
+                      <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
+                        {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
+                      </div>
+                    );
+                  })}
                   {booked.map(([s, e], i) => { const b = blockFor(cd, s, e); return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>; })}
                   {selHere && (() => { const b = blockFor(cd, selHere[0], selHere[1]); return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })()}
                   {cd === days[0] && <div class="daycal-now" style={{ top: `${(nowOfDay / 60) * deskPxh}px` }} />}
@@ -547,6 +575,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
             })}
           </div>
         </div>
+      </div>
         {showHint && <div class="daycal-hint" aria-hidden="true"><span class="daycal-hint-txt">{hint}</span></div>}
       </div>
     </div>

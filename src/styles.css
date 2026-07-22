@@ -604,14 +604,14 @@ code.url {
 /* generous breathing room above & below the paintable area */
 .daycal.titled .daycal-bodywrap { margin: 22px 0 8px; }
 
-/* mobile create: the paint hint is a small, unobtrusive floating pill near
-   the bottom of the paintable area (frosted, content-hugging, soft shadow) */
-.daycal.titled:not(.desk) .daycal-hint {
+/* create page: the paint hint is a small, unobtrusive floating pill near the
+   bottom of the paintable area (frosted, content-hugging, soft shadow) */
+.daycal.titled .daycal-hint {
   top: auto; bottom: 28px; left: 0; right: 0;
   align-items: flex-end; justify-content: center;
   padding: 0;
 }
-.daycal.titled:not(.desk) .daycal-hint-txt {
+.daycal.titled .daycal-hint-txt {
   display: inline-flex; align-items: center;
   padding: 7px 15px;
   background: color-mix(in srgb, var(--surface) 82%, transparent);
@@ -623,7 +623,7 @@ code.url {
   font-size: 0.76rem; line-height: 1.2; letter-spacing: 0.01em;
 }
 /* tiny accent dot: minimal touch that offsets the pill from the calendar */
-.daycal.titled:not(.desk) .daycal-hint-txt::before {
+.daycal.titled .daycal-hint-txt::before {
   content: '';
   flex: 0 0 auto;
   width: 6px; height: 6px; margin-right: 8px;
@@ -659,6 +659,18 @@ code.url {
 
 .daycal-free { position: absolute; left: 3px; right: 3px; background: var(--fill); border-left: 3px solid var(--highlight); border-radius: 7px; }
 .daycal-free.tappable { background: var(--fill-strong); }
+/* clear-block ✕ shown on a painted area once it's big enough (create page) */
+.daycal-remove {
+  position: absolute; top: 4px; right: 5px; z-index: 4;
+  width: 22px; height: 22px; min-height: 0; padding: 0; gap: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--bg); color: var(--muted);
+  font-size: 11px; line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+.daycal-remove:hover { color: var(--danger); border-color: var(--danger); }
+.daycal-remove:active { transform: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16); }
 .daycal-busy {
   position: absolute; left: 3px; right: 3px; border-radius: 7px; pointer-events: none;
   background-image: repeating-linear-gradient(-45deg, transparent 0 5px, rgba(242, 139, 130, 0.16) 5px 10px);
@@ -713,6 +725,9 @@ code.url {
 .ch-num { font-size: 1.15rem; font-weight: 600; color: var(--text); }
 .daycal-ch.today .ch-num, .daycal-ch.today .pip-wd { color: var(--highlight); }
 
+/* wrapper stays put while the body scrolls, so the hint can float over the
+   visible area (mirrors the mobile .daycal-bodywrap / .daycal-body split) */
+.daycal-deskbodywrap { flex: 1 1 auto; min-height: 0; position: relative; display: flex; }
 /* scrollable body: shared hour gutter + N day columns */
 .daycal-deskbody {
   flex: 1 1 auto; min-height: 0; position: relative;
@@ -721,7 +736,6 @@ code.url {
   user-select: none; -webkit-user-select: none;
 }
 .daycal-deskbody::-webkit-scrollbar { width: 0; }
-.daycal-deskbody .daycal-hint { font-size: 1.15rem; }
 .daycal-deskgrid { display: flex; position: relative; }
 .daycal-gutter { width: 56px; flex-shrink: 0; position: relative; }
 .daycal-glabel { position: absolute; right: 10px; transform: translateY(-50%); font-size: 0.72rem; color: var(--muted); }
