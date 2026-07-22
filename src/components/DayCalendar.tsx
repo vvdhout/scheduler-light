@@ -478,7 +478,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
           {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
         </div>
         </div>
-        {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
+        {showHint && <div class="daycal-hint" aria-hidden="true"><span class="daycal-hint-txt">{hint}</span></div>}
       </div>
     </div>
   );
@@ -545,7 +545,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
             })}
           </div>
         </div>
-        {showHint && <div class="daycal-hint" aria-hidden="true">{hint}</div>}
+        {showHint && <div class="daycal-hint" aria-hidden="true"><span class="daycal-hint-txt">{hint}</span></div>}
       </div>
     </div>
   );
