@@ -581,15 +581,24 @@ code.url {
 .daycal-title { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); line-height: 1.2; }
 
 /* create-page ("titled") header: title left, date right, no week arrows */
-.daycal.titled .daycal-head { align-items: baseline; }
+.daycal.titled .daycal-head { align-items: baseline; padding-top: 4px; margin-bottom: 12px; }
+.daycal.titled .daycal-title { font-size: 1.5rem; letter-spacing: -0.02em; }
 .daycal.titled .daycal-date { flex: 0 0 auto; text-align: right; }
-/* more breathing room above & below the paintable area */
-.daycal.titled .daycal-bodywrap { margin: 14px 0; }
-/* selected day: highlight the whole pill, keep the "has marks" dot visible */
-.daycal.titled .daycal-pip.on { background: var(--accent); border-radius: 10px; }
-.daycal.titled .daycal-pip.on .pip-num { background: transparent; color: var(--on-accent); }
-.daycal.titled .daycal-pip.on .pip-wd { color: var(--on-accent); }
-.daycal.titled .daycal-pip.on .pip-dot { background: var(--on-accent); }
+
+/* airier day strip: taller pills with more space around weekday / number / dot */
+.daycal.titled .daycal-strip { gap: 4px; }
+.daycal.titled .daycal-pip { padding: 12px 0 16px; gap: 8px; }
+.daycal.titled .pip-wd { font-size: 0.64rem; }
+.daycal.titled .pip-num { width: auto; height: auto; line-height: 1.1; font-size: 1.05rem; }
+.daycal.titled .pip-dot { bottom: 7px; width: 5px; height: 5px; }
+
+/* selected day: a soft, tall rounded highlight, dot still visible */
+.daycal.titled .daycal-pip.on { background: var(--fill); border-radius: 18px; }
+.daycal.titled .daycal-pip.on .pip-num { background: transparent; color: var(--text); }
+.daycal.titled .daycal-pip.on .pip-dot { background: var(--highlight); }
+
+/* generous breathing room above & below the paintable area */
+.daycal.titled .daycal-bodywrap { margin: 22px 0 8px; }
 
 .daycal-bodywrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
 .daycal-body {
