@@ -622,6 +622,14 @@ code.url {
   color: var(--muted);
   font-size: 0.76rem; line-height: 1.2; letter-spacing: 0.01em;
 }
+/* tiny accent dot: minimal touch that offsets the pill from the calendar */
+.daycal.titled:not(.desk) .daycal-hint-txt::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px; height: 6px; margin-right: 8px;
+  border-radius: 50%;
+  background: var(--highlight);
+}
 
 .daycal-bodywrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
 .daycal-body {
