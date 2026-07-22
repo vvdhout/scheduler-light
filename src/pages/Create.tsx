@@ -70,7 +70,7 @@ export function Create() {
 
   return (
     <main class="page app">
-      <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} title="My availability" hint="Hold to paint when you’re free, then share." />
+      <DayCalendar days={days} mode="paint" cells={cells} onChange={setCells} busy={busy} title="My availability" hint="Hold to paint when you’re free." />
 
       {error && <p class="error">{error}</p>}
       <OverlayBar fromMin={weekFrom} toMin={weekTo} onBusy={setBusy} />
