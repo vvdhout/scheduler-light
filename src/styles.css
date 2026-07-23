@@ -20,6 +20,7 @@
   --fill: rgba(47, 111, 208, 0.14);
   --fill-strong: rgba(47, 111, 208, 0.22);
   --ring: rgba(47, 111, 208, 0.35);
+  --grid-line: rgba(0, 0, 0, 0.07);   /* subtle hour lines on the light bg */
   --radius: 12px;
 }
 
@@ -41,6 +42,7 @@
   --fill: rgba(106, 160, 232, 0.20);
   --fill-strong: rgba(106, 160, 232, 0.32);
   --ring: rgba(106, 160, 232, 0.45);
+  --grid-line: rgba(255, 255, 255, 0.07);
 }
 
 * {
@@ -559,7 +561,7 @@ code.url {
 .daycal-strip { display: flex; gap: 2px; touch-action: pan-y; }
 
 /* week-strip carousel: 3 weeks side by side, translated with the finger */
-.daycal-stripwrap { position: relative; overflow: hidden; touch-action: pan-y; }
+.daycal-stripwrap { position: relative; overflow: hidden; touch-action: pan-y; flex: 0 0 auto; }
 .daycal-striptrack { position: relative; width: 100%; will-change: transform; }
 .daycal-strippanel { position: absolute; top: 0; left: 0; width: 100%; }
 .daycal-strippanel.cur { position: relative; } /* gives the track its height */
@@ -667,7 +669,7 @@ code.url {
 @media (prefers-reduced-motion: reduce) { .daycal-hint { animation: none; } }
 .daycal-body::-webkit-scrollbar { width: 0; }
 .daycal-grid { position: relative; margin-left: 34px; }
-.daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); pointer-events: none; }
+.daycal-hr { position: absolute; left: 0; right: 0; border-top: 1px solid var(--grid-line); pointer-events: none; }
 .daycal-hrlabel { position: absolute; left: -34px; top: -6px; width: 31px; text-align: left; font-size: 0.62rem; color: var(--muted); }
 
 .daycal-free { position: absolute; left: 3px; right: 3px; background: var(--fill); border-left: 3px solid var(--highlight); border-radius: 7px; }
