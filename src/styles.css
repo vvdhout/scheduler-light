@@ -52,9 +52,9 @@
    self-hosted, so it makes no external request and only loads on this skin.
    ========================================================================= */
 @font-face {
-  font-family: 'Press Start 2P';
-  font-style: normal; font-weight: 400; font-display: swap;
-  src: url('/press-start-2p.woff2') format('woff2');
+  font-family: 'Pixelify Sans';
+  font-style: normal; font-weight: 500; font-display: swap;
+  src: url('/pixelify-sans.woff2') format('woff2');
 }
 :root[data-skin="pkmn"] {
   --accent: #d32f2f;              /* poké red — primary actions */
@@ -64,7 +64,7 @@
   --fill: rgba(37, 99, 235, 0.16);
   --fill-strong: rgba(37, 99, 235, 0.30);
   --ring: rgba(37, 99, 235, 0.42);
-  --pixel: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+  --pixel: 'Pixelify Sans', ui-monospace, 'Courier New', monospace;
   --rr: 7px;                      /* retro corner radius */
   --ink: #14161a;                 /* hard borders / shadows */
 }
@@ -95,26 +95,27 @@
 :root[data-skin="pkmn"] .ghost {
   font-family: var(--pixel);
   letter-spacing: 0;
+  font-weight: 500; /* match the single loaded weight — avoids faux-bold */
 }
-/* pixel glyphs read best a notch smaller with looser line-height */
-:root[data-skin="pkmn"] h1 { font-size: 0.95rem; line-height: 1.55; }
-:root[data-skin="pkmn"] h2 { font-size: 0.8rem; line-height: 1.55; }
-:root[data-skin="pkmn"] .daycal.titled .daycal-title { font-size: 0.9rem; line-height: 1.5; }
+/* Pixelify Sans is narrower/lighter than the arcade font; sizes tuned to fit */
+:root[data-skin="pkmn"] h1 { font-size: 1.05rem; line-height: 1.35; }
+:root[data-skin="pkmn"] h2 { font-size: 0.95rem; line-height: 1.35; }
+:root[data-skin="pkmn"] .daycal.titled .daycal-title { font-size: 1.05rem; line-height: 1.3; }
 :root[data-skin="pkmn"] .pip-wd,
-:root[data-skin="pkmn"] .daycal.titled .pip-wd { font-size: 0.4rem; }
+:root[data-skin="pkmn"] .daycal.titled .pip-wd { font-size: 0.6rem; }
 :root[data-skin="pkmn"] .pip-num,
-:root[data-skin="pkmn"] .daycal.titled .pip-num { font-size: 0.72rem; }
-:root[data-skin="pkmn"] .ch-num { font-size: 0.82rem; }
+:root[data-skin="pkmn"] .daycal.titled .pip-num { font-size: 0.9rem; }
+:root[data-skin="pkmn"] .ch-num { font-size: 1rem; }
 :root[data-skin="pkmn"] .daycal-hrlabel,
-:root[data-skin="pkmn"] .daycal-glabel { font-size: 0.36rem; }
-:root[data-skin="pkmn"] .daycal-range { font-size: 0.66rem; }
-:root[data-skin="pkmn"] .daycal-today { font-size: 0.5rem; }
-:root[data-skin="pkmn"] .daycal-free-label { font-size: 0.46rem; color: var(--highlight); }
-:root[data-skin="pkmn"] .daycal-hint-txt { font-size: 0.46rem; line-height: 1.6; }
-:root[data-skin="pkmn"] .fab { font-size: 0.6rem; }
+:root[data-skin="pkmn"] .daycal-glabel { font-size: 0.62rem; }
+:root[data-skin="pkmn"] .daycal-range { font-size: 0.8rem; }
+:root[data-skin="pkmn"] .daycal-today { font-size: 0.62rem; }
+:root[data-skin="pkmn"] .daycal-free-label { font-size: 0.68rem; color: var(--highlight); }
+:root[data-skin="pkmn"] .daycal-hint-txt { font-size: 0.62rem; line-height: 1.4; }
+:root[data-skin="pkmn"] .fab { font-size: 0.72rem; }
 :root[data-skin="pkmn"] .primary,
 :root[data-skin="pkmn"] .button,
-:root[data-skin="pkmn"] .ghost { font-size: 0.56rem; }
+:root[data-skin="pkmn"] .ghost { font-size: 0.68rem; }
 
 /* --- dialogue-box chrome: thick borders + hard offset shadows --- */
 :root[data-skin="pkmn"] .card {
