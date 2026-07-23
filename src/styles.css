@@ -558,6 +558,21 @@ code.url {
 
 .daycal-strip { display: flex; gap: 2px; touch-action: pan-y; }
 
+/* week-strip carousel: 3 weeks side by side, translated with the finger */
+.daycal-stripwrap { position: relative; overflow: hidden; touch-action: pan-y; }
+.daycal-striptrack { position: relative; width: 100%; will-change: transform; }
+.daycal-strippanel { position: absolute; top: 0; left: 0; width: 100%; }
+.daycal-strippanel.cur { position: relative; } /* gives the track its height */
+.daycal-strippanel.prev { left: -100%; }
+.daycal-strippanel.next { left: 100%; }
+
+/* day carousel inside the calendar body: prev/cur/next day panels */
+.daycal-track { position: relative; width: 100%; will-change: transform; }
+.daycal-panel { position: absolute; top: 0; left: 0; width: 100%; }
+.daycal-panel.cur { position: relative; } /* gives the track its height */
+.daycal-panel.prev { left: -100%; }
+.daycal-panel.next { left: 100%; }
+
 /* quick directional slide when changing day/week (Apple Calendar feel) */
 @keyframes daycal-in-fwd { from { opacity: 0.5; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @keyframes daycal-in-back { from { opacity: 0.5; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
@@ -662,7 +677,8 @@ code.url {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding: 0 6px; text-align: center;
-  font-size: 0.72rem; font-weight: 600; color: var(--highlight);
+  font-size: 0.72rem; font-weight: 600;
+  color: color-mix(in srgb, var(--highlight) 66%, transparent);
   font-variant-numeric: tabular-nums; white-space: nowrap;
   pointer-events: none;
 }

@@ -102,6 +102,9 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
 
   const body = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null); // mobile day carousel (paint mode)
+  const stripTrack = useRef<HTMLDivElement>(null); // mobile week-strip carousel
+  const stripLast = useRef({ dx: 0, dy: 0 });
   const deskBody = useRef<HTMLDivElement>(null);
   const colwrap = useRef<HTMLDivElement>(null);
   const deskPxhRef = useRef(52);
@@ -110,11 +113,21 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   const mdown = useRef<{ anchor: number; add: boolean; base: Set<number> } | null>(null);
   const mdesk = useRef<{ day: number; anchor: number; add: boolean; base: Set<number> } | null>(null);
 
+  // Change day by ±1 with no keyframe (the finger-tracked carousel supplies the motion).
+  const commitDay = (delta: 1 | -1) => {
+    const j = dayIdx + delta;
+    if (j < 0 || j >= days.length) return;
+    setDayIdx(j);
+    setSel(null);
+    onSelect?.(null);
+  };
+
   const ctx = useRef<{
     mode: Mode; dayStart: number; cells: Set<number>; onChange?: (c: Set<number>) => void;
     wins: Win[]; now: number; onSelect?: (s: Win | null) => void; setSel: (s: Win | null) => void; go: (d: 1 | -1) => void;
+    dayIdx: number; daysLen: number; commitDay: (d: 1 | -1) => void;
   }>(null!);
-  ctx.current = { mode, dayStart, cells: cells ?? new Set(), onChange, wins, now, onSelect, setSel, go };
+  ctx.current = { mode, dayStart, cells: cells ?? new Set(), onChange, wins, now, onSelect, setSel, go, dayIdx, daysLen: days.length, commitDay };
 
   const timeToY = (mid: number) => (mid / 60) * PXH;
   const cellAtClientY = (clientY: number) => {
@@ -247,7 +260,15 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         g.mode = Math.abs(dx) > Math.abs(dy) ? 'swipe' : 'scroll';
       }
       if (g.mode === 'draw') { e.preventDefault(); draw(cellAtClientY(t.clientY)); }
-      else if (g.mode === 'swipe') e.preventDefault();
+      else if (g.mode === 'swipe') {
+        e.preventDefault();
+        if (ctx.current.mode === 'paint' && track.current) {
+          let d = dx;
+          if ((d > 0 && ctx.current.dayIdx === 0) || (d < 0 && ctx.current.dayIdx >= ctx.current.daysLen - 1)) d *= 0.25; // rubber-band at ends
+          track.current.style.transition = 'none';
+          track.current.style.transform = `translateX(${d}px)`;
+        }
+      }
     };
     const onEnd = (e: TouchEvent) => {
       lastTouch.current = Date.now();
@@ -261,8 +282,26 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         if (ctx.current.mode === 'paint') {
           if (c >= ctx.current.now) { const n = new Set(ctx.current.cells); n.has(c) ? n.delete(c) : n.add(c); ctx.current.onChange?.(n); }
         } else if (ctx.current.mode === 'select') selectRange(c, c);
-      } else if (cur.mode === 'swipe' && Math.abs(cur.dx) > SWIPE) {
-        ctx.current.go(cur.dx < 0 ? 1 : -1);
+      } else if (cur.mode === 'swipe') {
+        if (ctx.current.mode === 'paint' && track.current && body.current) {
+          // finger-tracked day carousel: settle to the neighbour or snap back
+          const tr = track.current;
+          const w = body.current.clientWidth || 1;
+          const canPrev = ctx.current.dayIdx > 0, canNext = ctx.current.dayIdx < ctx.current.daysLen - 1;
+          let commit: 1 | -1 | 0 = 0;
+          if (cur.dx <= -SWIPE && canNext) commit = 1;
+          else if (cur.dx >= SWIPE && canPrev) commit = -1;
+          const targetX = commit === 1 ? -w : commit === -1 ? w : 0;
+          tr.style.transition = 'transform 0.24s cubic-bezier(0.25, 0.1, 0.25, 1)';
+          tr.style.transform = `translateX(${targetX}px)`;
+          window.setTimeout(() => {
+            tr.style.transition = 'none';
+            tr.style.transform = 'translateX(0)';
+            if (commit) ctx.current.commitDay(commit);
+          }, 250);
+        } else if (Math.abs(cur.dx) > SWIPE) {
+          ctx.current.go(cur.dx < 0 ? 1 : -1);
+        }
       }
     };
     const onCancel = () => { if (g) clearTimeout(g.timer); g = null; };
@@ -408,16 +447,114 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
   const onDeskUp = () => { mdesk.current = null; };
 
-  const block = (s: number, e: number) => {
-    const a = Math.max(s - dayStart, 0), b = Math.min(e - dayStart, HOURS * 60);
-    return { top: timeToY(a), height: Math.max(3, timeToY(b) - timeToY(a)), hidden: b <= a };
-  };
-
   const date = new Date(dayStart * 60000);
   const nowOfDay = new Date().getHours() * 60 + new Date().getMinutes();
-  const selOnDay = sel && sel[0] >= dayStart && sel[0] < dayStart + 1440 ? sel : null;
   // Centered overlay hint until they've painted (paint) or marked a range (select).
   const showHint = !!hint && (mode === 'paint' ? (cells?.size ?? 0) === 0 : mode === 'select' ? sel === null : false);
+
+  // ---- mobile carousel helpers (one panel per day / per week) ----
+  const gridInner = (di: number) => {
+    const ds = days[di];
+    if (ds == null) return null;
+    const isTd = di === 0;
+    const nowY = timeToY(nowOfDay);
+    const blk = (s: number, e: number) => {
+      const a = Math.max(s - ds, 0), b = Math.min(e - ds, HOURS * 60);
+      return { top: timeToY(a), height: Math.max(3, timeToY(b) - timeToY(a)), hidden: b <= a };
+    };
+    const selH = sel && sel[0] >= ds && sel[0] < ds + 1440 ? sel : null;
+    return (
+      <>
+        {isTd && <div class="daycal-past" style={{ height: `${nowY}px` }} />}
+        {Array.from({ length: HOURS + 1 }, (_, h) => (
+          <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
+            <span class="daycal-hrlabel">{h < HOURS ? fmtTime(ds + h * 60) : ''}</span>
+          </div>
+        ))}
+        {busy.map(([s, e], i) => { const b = blk(s, e); return b.hidden ? null : <div key={`b${i}`} class="daycal-busy" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })}
+        {wins.map(([s, e], i) => {
+          const b = blk(s, e);
+          if (b.hidden) return null;
+          const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
+          return (
+            <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
+              {mode === 'paint' && e - s >= LABEL_MIN_MIN && <span class="daycal-free-label">{fmtTime(s)}–{fmtTime(e)}</span>}
+              {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
+            </div>
+          );
+        })}
+        {booked.map(([s, e], i) => { const b = blk(s, e); return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>; })}
+        {selH && (() => { const b = blk(selH[0], selH[1]); return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />; })()}
+        {isTd && <div class="daycal-now" style={{ top: `${nowY}px` }} />}
+      </>
+    );
+  };
+  const weekPips = (ws: number) => (
+    <div class="daycal-strip">
+      {Array.from({ length: 7 }, (_, j) => {
+        const i = ws + j;
+        const d = days[i];
+        if (d == null) return <span key={`e${j}`} class="daycal-pip empty" aria-hidden="true" />;
+        const dd = new Date(d * 60000);
+        const usable = dayUsable(i);
+        const has = mode === 'paint' ? cellsOnDay(d) > 0 : usable;
+        return (
+          <button
+            key={d}
+            type="button"
+            class={`daycal-pip ${i === dayIdx ? 'on' : ''} ${!usable ? 'empty' : ''}`}
+            disabled={!usable && mode !== 'paint'}
+            onClick={() => { if (Date.now() - swipedAt.current < 300) return; setDay(i); }}
+          >
+            <span class="pip-wd">{WD.format(dd)}</span>
+            <span class="pip-num">{DNUM.format(dd)}</span>
+            {has && <span class="pip-dot" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+  // Finger-tracked week strip (translate with the finger, snap to prev/next week).
+  const stripStart = (e: TouchEvent) => {
+    const t = e.touches[0];
+    stripTouch.current = t ? { x: t.clientX, y: t.clientY } : null;
+    stripLast.current = { dx: 0, dy: 0 };
+    if (stripTrack.current) stripTrack.current.style.transition = 'none';
+  };
+  const stripMove = (e: TouchEvent) => {
+    const s = stripTouch.current, tr = stripTrack.current;
+    if (!s || !tr) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - s.x, dy = t.clientY - s.y;
+    stripLast.current = { dx, dy };
+    if (Math.abs(dx) > Math.abs(dy)) {
+      let d = dx;
+      if ((d > 0 && weekStart === 0) || (d < 0 && weekStart + 7 >= days.length)) d *= 0.25;
+      tr.style.transform = `translateX(${d}px)`;
+    }
+  };
+  const stripEnd = () => {
+    const s = stripTouch.current; stripTouch.current = null;
+    const tr = stripTrack.current;
+    if (!s || !tr) return;
+    const { dx, dy } = stripLast.current;
+    const w = tr.clientWidth || 1;
+    let commit: 1 | -1 | 0 = 0;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0 && weekStart + 7 < days.length) commit = 1;
+      else if (dx > 0 && weekStart > 0) commit = -1;
+    }
+    const targetX = commit === 1 ? -w : commit === -1 ? w : 0;
+    tr.style.transition = 'transform 0.24s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    tr.style.transform = `translateX(${targetX}px)`;
+    if (commit) swipedAt.current = Date.now();
+    window.setTimeout(() => {
+      tr.style.transition = 'none';
+      tr.style.transform = 'translateX(0)';
+      if (commit) goWeek(commit);
+    }, 250);
+  };
 
   // ============================ MOBILE (1 day) ============================
   if (cols === 1) return (
@@ -430,75 +567,25 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
         {!title && <button type="button" class="daycal-nav" onClick={() => goWeek(1)} aria-label="Next week" disabled={weekStart + 7 >= days.length}>›</button>}
       </div>
 
-      <div
-        class={`daycal-strip slide-${dir.current}`}
-        key={`wk${weekStart}`}
-        onTouchStart={(e) => { const t = e.touches[0]; if (t) stripTouch.current = { x: t.clientX, y: t.clientY }; }}
-        onTouchEnd={(e) => {
-          const s = stripTouch.current; stripTouch.current = null;
-          if (!s) return;
-          const t = e.changedTouches[0];
-          if (!t) return;
-          const dx = t.clientX - s.x, dy = t.clientY - s.y;
-          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { swipedAt.current = Date.now(); goWeek(dx < 0 ? 1 : -1); }
-        }}
-      >
-        {days.slice(weekStart, weekStart + 7).map((d, j) => {
-          const i = weekStart + j;
-          const dd = new Date(d * 60000);
-          const usable = dayUsable(i);
-          const has = mode === 'paint' ? cellsOnDay(d) > 0 : usable;
-          return (
-            <button
-              key={d}
-              type="button"
-              class={`daycal-pip ${i === dayIdx ? 'on' : ''} ${!usable ? 'empty' : ''}`}
-              disabled={!usable && mode !== 'paint'}
-              onClick={() => { if (Date.now() - swipedAt.current < 300) return; setDay(i); }}
-            >
-              <span class="pip-wd">{WD.format(dd)}</span>
-              <span class="pip-num">{DNUM.format(dd)}</span>
-              {has && <span class="pip-dot" />}
-            </button>
-          );
-        })}
+      <div class="daycal-stripwrap" onTouchStart={stripStart} onTouchMove={stripMove} onTouchEnd={stripEnd}>
+        <div class="daycal-striptrack" ref={stripTrack}>
+          <div class="daycal-strippanel prev">{weekPips(weekStart - 7)}</div>
+          <div class="daycal-strippanel cur">{weekPips(weekStart)}</div>
+          <div class="daycal-strippanel next">{weekPips(weekStart + 7)}</div>
+        </div>
       </div>
 
       <div class="daycal-bodywrap">
         <div class="daycal-body" ref={body} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-        <div class={`daycal-grid slide-${dir.current}`} key={`d${anim}`} style={{ height: `${GRID_H}px` }}>
-          {isToday && <div class="daycal-past" style={{ height: `${timeToY(nowOfDay)}px` }} />}
-          {Array.from({ length: HOURS + 1 }, (_, h) => (
-            <div key={h} class="daycal-hr" style={{ top: `${h * PXH}px` }}>
-              <span class="daycal-hrlabel">{h < HOURS ? fmtTime(dayStart + h * 60) : ''}</span>
+          {mode === 'paint' ? (
+            <div class="daycal-track" ref={track}>
+              <div class="daycal-panel prev"><div class="daycal-grid" style={{ height: `${GRID_H}px` }}>{gridInner(dayIdx - 1)}</div></div>
+              <div class="daycal-panel cur"><div class={`daycal-grid slide-${dir.current}`} key={`g${anim}`} style={{ height: `${GRID_H}px` }}>{gridInner(dayIdx)}</div></div>
+              <div class="daycal-panel next"><div class="daycal-grid" style={{ height: `${GRID_H}px` }}>{gridInner(dayIdx + 1)}</div></div>
             </div>
-          ))}
-
-          {busy.map(([s, e], i) => {
-            const b = block(s, e);
-            return b.hidden ? null : <div key={`b${i}`} class="daycal-busy" style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
-          })}
-          {wins.map(([s, e], i) => {
-            const b = block(s, e);
-            if (b.hidden) return null;
-            const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
-            return (
-              <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
-                {mode === 'paint' && e - s >= LABEL_MIN_MIN && <span class="daycal-free-label">{fmtTime(s)}–{fmtTime(e)}</span>}
-                {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
-              </div>
-            );
-          })}
-          {booked.map(([s, e], i) => {
-            const b = block(s, e);
-            return b.hidden ? null : <div key={`k${i}`} class="daycal-taken" style={{ top: `${b.top}px`, height: `${b.height}px` }}><span>taken</span></div>;
-          })}
-          {selOnDay && (() => {
-            const b = block(selOnDay[0], selOnDay[1]);
-            return <div class="daycal-sel" style={{ top: `${b.top}px`, height: `${b.height}px` }} />;
-          })()}
-          {isToday && <div class="daycal-now" style={{ top: `${timeToY(nowOfDay)}px` }} />}
-        </div>
+          ) : (
+            <div class={`daycal-grid slide-${dir.current}`} key={`d${anim}`} style={{ height: `${GRID_H}px` }}>{gridInner(dayIdx)}</div>
+          )}
         </div>
         {showHint && <div class="daycal-hint" aria-hidden="true"><span class="daycal-hint-txt">{hint}</span></div>}
       </div>
