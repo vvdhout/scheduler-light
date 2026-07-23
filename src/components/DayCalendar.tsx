@@ -143,6 +143,8 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
   };
   // Show a clear-✕ on a painted block once it spans this many contiguous cells.
   const REMOVE_MIN_CELLS = 3;
+  // Show the time-range label once a painted block is at least this many minutes tall.
+  const LABEL_MIN_MIN = 60;
   const onRemoveBtn = (target: EventTarget | null) => !!(target as HTMLElement)?.closest?.('.daycal-remove');
   const removeArea = (s: number, e: number) => {
     const next = new Set(ctx.current.cells);
@@ -482,6 +484,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
             const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
             return (
               <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
+                {mode === 'paint' && e - s >= LABEL_MIN_MIN && <span class="daycal-free-label">{fmtTime(s)}–{fmtTime(e)}</span>}
                 {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
               </div>
             );
@@ -563,6 +566,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
                     const removable = mode === 'paint' && e - s >= REMOVE_MIN_CELLS * CELL_MIN;
                     return (
                       <div key={`w${i}`} class={`daycal-free ${mode === 'select' ? 'tappable' : ''}`} style={{ top: `${b.top}px`, height: `${b.height}px` }}>
+                        {mode === 'paint' && e - s >= LABEL_MIN_MIN && <span class="daycal-free-label">{fmtTime(s)}–{fmtTime(e)}</span>}
                         {removable && <button type="button" class="daycal-remove" aria-label="Clear this block" onClick={() => removeArea(s, e)}>✕</button>}
                       </div>
                     );
