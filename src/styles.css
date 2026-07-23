@@ -46,44 +46,116 @@
 }
 
 /* =========================================================================
-   "/pkmn" skin — an ORIGINAL red + blue palette and dot texture that nods to
-   the classic games' vibe. No trademarked names, logos, sprites, or fonts.
-   Only brand accents are overridden; the neutral light/dark base carries the
-   rest, so it works in both themes.
+   "/pkmn" skin — a retro 8-bit game look. ORIGINAL red+blue palette + an
+   open-source pixel font (Press Start 2P, OFL — NOT a trademarked Pokémon
+   typeface), dialogue-box chrome, and bold menu-style highlights. The font is
+   self-hosted, so it makes no external request and only loads on this skin.
    ========================================================================= */
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/press-start-2p.woff2') format('woff2');
+}
 :root[data-skin="pkmn"] {
   --accent: #d32f2f;              /* poké red — primary actions */
   --on-accent: #ffffff;
   --highlight: #2563eb;           /* vivid blue — availability / selection */
   --gold: #b45309;
-  --fill: rgba(37, 99, 235, 0.14);
-  --fill-strong: rgba(37, 99, 235, 0.22);
-  --ring: rgba(37, 99, 235, 0.38);
+  --fill: rgba(37, 99, 235, 0.16);
+  --fill-strong: rgba(37, 99, 235, 0.30);
+  --ring: rgba(37, 99, 235, 0.42);
+  --pixel: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+  --rr: 7px;                      /* retro corner radius */
+  --ink: #14161a;                 /* hard borders / shadows */
 }
 :root[data-skin="pkmn"][data-theme="dark"] {
   --accent: #ef4444;
   --highlight: #60a5fa;
-  --fill: rgba(96, 165, 250, 0.20);
-  --fill-strong: rgba(96, 165, 250, 0.32);
-  --ring: rgba(96, 165, 250, 0.45);
+  --fill: rgba(96, 165, 250, 0.22);
+  --fill-strong: rgba(96, 165, 250, 0.38);
+  --ring: rgba(96, 165, 250, 0.50);
+  --ink: #000000;
 }
-/* friendly rounded headings (system rounded face; not the trademarked font) */
+
+/* --- pixel typeface on the UI chrome (short strings; long body stays legible) --- */
 :root[data-skin="pkmn"] h1,
-:root[data-skin="pkmn"] h2 {
-  font-family: ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+:root[data-skin="pkmn"] h2,
+:root[data-skin="pkmn"] .pip-wd,
+:root[data-skin="pkmn"] .pip-num,
+:root[data-skin="pkmn"] .ch-num,
+:root[data-skin="pkmn"] .daycal-range,
+:root[data-skin="pkmn"] .daycal-today,
+:root[data-skin="pkmn"] .daycal-hrlabel,
+:root[data-skin="pkmn"] .daycal-glabel,
+:root[data-skin="pkmn"] .daycal-free-label,
+:root[data-skin="pkmn"] .daycal-hint-txt,
+:root[data-skin="pkmn"] .fab,
+:root[data-skin="pkmn"] .primary,
+:root[data-skin="pkmn"] .button,
+:root[data-skin="pkmn"] .ghost {
+  font-family: var(--pixel);
   letter-spacing: 0;
 }
-/* subtle playful dot texture behind everything */
-:root[data-skin="pkmn"] body {
-  background-image: radial-gradient(var(--pkmn-dot, rgba(211, 47, 47, 0.05)) 1.3px, transparent 1.4px);
-  background-size: 18px 18px;
+/* pixel glyphs read best a notch smaller with looser line-height */
+:root[data-skin="pkmn"] h1 { font-size: 0.95rem; line-height: 1.55; }
+:root[data-skin="pkmn"] h2 { font-size: 0.8rem; line-height: 1.55; }
+:root[data-skin="pkmn"] .daycal.titled .daycal-title { font-size: 0.9rem; line-height: 1.5; }
+:root[data-skin="pkmn"] .pip-wd,
+:root[data-skin="pkmn"] .daycal.titled .pip-wd { font-size: 0.4rem; }
+:root[data-skin="pkmn"] .pip-num,
+:root[data-skin="pkmn"] .daycal.titled .pip-num { font-size: 0.72rem; }
+:root[data-skin="pkmn"] .ch-num { font-size: 0.82rem; }
+:root[data-skin="pkmn"] .daycal-hrlabel,
+:root[data-skin="pkmn"] .daycal-glabel { font-size: 0.36rem; }
+:root[data-skin="pkmn"] .daycal-range { font-size: 0.66rem; }
+:root[data-skin="pkmn"] .daycal-today { font-size: 0.5rem; }
+:root[data-skin="pkmn"] .daycal-free-label { font-size: 0.46rem; color: var(--highlight); }
+:root[data-skin="pkmn"] .daycal-hint-txt { font-size: 0.46rem; line-height: 1.6; }
+:root[data-skin="pkmn"] .fab { font-size: 0.6rem; }
+:root[data-skin="pkmn"] .primary,
+:root[data-skin="pkmn"] .button,
+:root[data-skin="pkmn"] .ghost { font-size: 0.56rem; }
+
+/* --- dialogue-box chrome: thick borders + hard offset shadows --- */
+:root[data-skin="pkmn"] .card {
+  border: 3px solid var(--ink); border-radius: var(--rr);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.18);
 }
-:root[data-skin="pkmn"][data-theme="dark"] body { --pkmn-dot: rgba(239, 68, 68, 0.06); }
-/* keep the calendar itself clean — mask the texture behind the grid */
+:root[data-skin="pkmn"] .fab {
+  border: 3px solid var(--ink); border-radius: var(--rr);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32); padding: 0 18px;
+}
+:root[data-skin="pkmn"] .primary,
+:root[data-skin="pkmn"] .button,
+:root[data-skin="pkmn"] .ghost,
+:root[data-skin="pkmn"] .daycal-today {
+  border: 2px solid var(--ink); border-radius: var(--rr);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22);
+}
+:root[data-skin="pkmn"] .daycal.titled .daycal-hint-txt {
+  background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 2px solid var(--ink); border-radius: var(--rr);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.15); color: var(--text);
+}
+
+/* --- bold menu-style highlight for painted availability + selected day --- */
+:root[data-skin="pkmn"] .daycal-free {
+  background: var(--fill-strong);
+  border: 2px solid var(--highlight); border-radius: 4px;
+}
+:root[data-skin="pkmn"] .daycal.titled .daycal-pip.on {
+  background: var(--fill-strong);
+  border: 2px solid var(--highlight); border-radius: 6px;
+}
+
+/* --- playful red pixel-dot backdrop (calendar stays clean) --- */
+:root[data-skin="pkmn"] body {
+  background-image: radial-gradient(var(--pkmn-dot, rgba(211, 47, 47, 0.07)) 1.5px, transparent 1.6px);
+  background-size: 16px 16px;
+}
+:root[data-skin="pkmn"][data-theme="dark"] body { --pkmn-dot: rgba(239, 68, 68, 0.08); }
 :root[data-skin="pkmn"] .daycal-body,
 :root[data-skin="pkmn"] .daycal-deskbody { background: var(--bg); }
-/* warmer glow under the red action button */
-:root[data-skin="pkmn"] .fab { box-shadow: 0 6px 18px rgba(211, 47, 47, 0.32); }
 
 * {
   box-sizing: border-box;
