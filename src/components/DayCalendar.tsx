@@ -155,7 +155,7 @@ export function DayCalendar({ days, mode, cells, onChange, windows, busy = [], b
     ctx.current.onSelect?.([start, end]);
   };
   // Show a clear-✕ on a painted block once it spans this many contiguous cells.
-  const REMOVE_MIN_CELLS = 3;
+  const REMOVE_MIN_CELLS = 2;
   // Show the time-range label once a painted block is at least this many minutes tall.
   const LABEL_MIN_MIN = 60;
   const onRemoveBtn = (target: EventTarget | null) => !!(target as HTMLElement)?.closest?.('.daycal-remove');

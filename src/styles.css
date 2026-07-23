@@ -617,7 +617,7 @@ code.url {
 .daycal.titled .daycal-pip.on .pip-dot { background: var(--highlight); }
 
 /* generous breathing room above & below the paintable area */
-.daycal.titled .daycal-bodywrap { margin: 22px 0 8px; }
+.daycal.titled .daycal-bodywrap { margin: 12px 0 8px; }
 
 /* create page: the paint hint is a small, unobtrusive floating pill near the
    bottom of the paintable area (frosted, content-hugging, soft shadow) */
