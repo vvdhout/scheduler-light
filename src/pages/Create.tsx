@@ -40,7 +40,9 @@ export function Create() {
   };
 
   if (result) {
-    const url = `${location.origin}/s/${result}`;
+    // keep the "/pkmn" skin prefix on shared links so recipients see the theme too
+    const base = location.pathname.startsWith('/pkmn') ? '/pkmn' : '';
+    const url = `${location.origin}${base}/s/${result}`;
     return (
       <main class="page">
         <h1>Shared ✓</h1>
@@ -59,7 +61,7 @@ export function Create() {
           </button>
         </div>
         <div class="row">
-          <a class="ghost button" href={`/s/${result}`}>Open my page</a>
+          <a class="ghost button" href={`${base}/s/${result}`}>Open my page</a>
         </div>
         <p class="muted small-text">
           Open your page on this device anytime to adjust your availability and see what’s been grabbed. Only this device can edit it.

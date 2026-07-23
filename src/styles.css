@@ -45,6 +45,46 @@
   --grid-line: rgba(255, 255, 255, 0.07);
 }
 
+/* =========================================================================
+   "/pkmn" skin — an ORIGINAL red + blue palette and dot texture that nods to
+   the classic games' vibe. No trademarked names, logos, sprites, or fonts.
+   Only brand accents are overridden; the neutral light/dark base carries the
+   rest, so it works in both themes.
+   ========================================================================= */
+:root[data-skin="pkmn"] {
+  --accent: #d32f2f;              /* poké red — primary actions */
+  --on-accent: #ffffff;
+  --highlight: #2563eb;           /* vivid blue — availability / selection */
+  --gold: #b45309;
+  --fill: rgba(37, 99, 235, 0.14);
+  --fill-strong: rgba(37, 99, 235, 0.22);
+  --ring: rgba(37, 99, 235, 0.38);
+}
+:root[data-skin="pkmn"][data-theme="dark"] {
+  --accent: #ef4444;
+  --highlight: #60a5fa;
+  --fill: rgba(96, 165, 250, 0.20);
+  --fill-strong: rgba(96, 165, 250, 0.32);
+  --ring: rgba(96, 165, 250, 0.45);
+}
+/* friendly rounded headings (system rounded face; not the trademarked font) */
+:root[data-skin="pkmn"] h1,
+:root[data-skin="pkmn"] h2 {
+  font-family: ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+  letter-spacing: 0;
+}
+/* subtle playful dot texture behind everything */
+:root[data-skin="pkmn"] body {
+  background-image: radial-gradient(var(--pkmn-dot, rgba(211, 47, 47, 0.05)) 1.3px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+:root[data-skin="pkmn"][data-theme="dark"] body { --pkmn-dot: rgba(239, 68, 68, 0.06); }
+/* keep the calendar itself clean — mask the texture behind the grid */
+:root[data-skin="pkmn"] .daycal-body,
+:root[data-skin="pkmn"] .daycal-deskbody { background: var(--bg); }
+/* warmer glow under the red action button */
+:root[data-skin="pkmn"] .fab { box-shadow: 0 6px 18px rgba(211, 47, 47, 0.32); }
+
 * {
   box-sizing: border-box;
 }

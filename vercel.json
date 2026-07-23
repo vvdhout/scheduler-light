@@ -2,6 +2,10 @@
   "rewrites": [
     { "source": "/s/:id", "destination": "/api/share?id=:id" },
     { "source": "/a/:id", "destination": "/index.html" },
-    { "source": "/stats", "destination": "/index.html" }
+    { "source": "/stats", "destination": "/index.html" },
+    { "source": "/pkmn", "destination": "/index.html" },
+    { "source": "/pkmn/stats", "destination": "/index.html" },
+    { "source": "/pkmn/s/:id", "destination": "/api/share?id=:id&skin=pkmn" },
+    { "source": "/pkmn/a/:id", "destination": "/index.html" }
   ]
 }

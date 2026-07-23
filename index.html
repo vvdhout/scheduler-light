@@ -20,6 +20,8 @@
           } catch (e) {}
         }
         apply();
+        // Optional "/pkmn" skin — set before paint to avoid a flash of the default theme.
+        try { document.documentElement.setAttribute('data-skin', location.pathname.indexOf('/pkmn') === 0 ? 'pkmn' : 'default'); } catch (e) {}
         try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); } catch (e) {}
         document.addEventListener('visibilitychange', function () { if (!document.hidden) apply(); });
       })();

@@ -13,12 +13,21 @@ for (const t of ['gesturestart', 'gesturechange', 'gestureend']) {
 }
 document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
-const linkMatch = location.pathname.match(/^\/(?:s|a)\/([A-Za-z0-9]{10,40})$/);
+// Optional "/pkmn" skin: same app + backend, re-themed purely by URL prefix.
+// The prefix is stripped for routing and re-added when building share links.
+const skin = location.pathname.startsWith('/pkmn') ? 'pkmn' : 'default';
+document.documentElement.dataset.skin = skin;
+if (skin === 'pkmn') {
+  const ic = document.querySelector('link[rel="icon"]');
+  if (ic) ic.setAttribute('href', ic.getAttribute('href')!.replaceAll('%234fd1a5', '%23d32f2f'));
+}
+const path = (skin === 'pkmn' ? location.pathname.slice('/pkmn'.length) : location.pathname) || '/';
+const linkMatch = path.match(/^\/(?:s|a)\/([A-Za-z0-9]{10,40})$/);
 
 function App() {
   // /s/:id (and legacy /a/:id) open the shared page; ownership is decided by
   // this device (lib/store), so there's no separate admin route.
-  if (location.pathname === '/stats') return <Stats />;
+  if (path === '/stats') return <Stats />;
   if (linkMatch) return <View id={linkMatch[1]!} />;
   return <Create />;
 }
@@ -26,7 +35,7 @@ function App() {
 render(<App />, document.getElementById('app')!);
 
 // Anonymous page-open metric (once per load; not on the stats dashboard).
-if (location.pathname !== '/stats') {
+if (path !== '/stats') {
   if (linkMatch) track('link', ownerToken(linkMatch[1]!) != null);
   else track('home');
 }
